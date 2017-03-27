@@ -1216,7 +1216,7 @@ for (i in 1:T)
                 100*quarter_tau_h[j+1],
                 100*quarter_tau_h[j+2],
                 100*quarter_tau_h[j+3],
-                100*quarter_tau_h[j+14]),
+                100*quarter_tau_h[j+4]), ### 2017-03-27: changed "j+14" to "j+4"
         file=tex.file, append=TRUE)
   }
 
@@ -1291,9 +1291,39 @@ us.data <- merge(quarter_real_pc_y,
 	   quarter_return_housing_capital_after_tax, 
 	   quarter_return_housing_capital_after_tax_no_gain)
 
-### Write the `shocks' to file
+# 2017-03-27: Added proper names
+names(us.data) <- c("Output",
+                    "Consumption",
+                    "Investment",
+                    "Market investment",
+                    "Home investment",
+                    "Hours",
+                    "Productivity",
+                    "Capital stock",
+                    "Capital stock: market",
+                    "Capital stock: home",
+                    "Solow residual",
+                    "Relative price of investment",
+                    "Tax rate: capital income",
+                    "Tax rate: labor income",
+                    "Return to business capital, pre-tax",
+                    "Return to business capital, pre-tax, no capital gain",
+                    "Return to business capital, after--tax",
+                    "Return to business capital, after-tax, no capital gain",
+                    "Return to all capital, pre-tax",
+                    "Return to all capital, pre-tax, no capital gain",
+                    "Return to all capital, after--tax",
+                    "Return to all capital, after-tax, no capital gain",
+                    "Return to housing capital, pre-tax",
+                    "Return to housing capital, pre-tax, no capital gain",
+                    "Return to housing capital, after--tax",
+                    "Return to housing capital, after-tax, no capital gain")
+                    
 
 write.table(us.data, file='usdata.csv', row.names=FALSE, col.names=FALSE, sep=',', na='NaN')
+write.zoo(us.data, file='usdata.dat')
+
+### Write the `shocks' to file
 
 shocks <- merge(quarter_relative_price_investment, 
                 quarter_solow_residual,
