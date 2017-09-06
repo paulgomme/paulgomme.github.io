@@ -88,6 +88,7 @@
 
 ### May need to install a number of packages:
 ###
+### install.packages('curl') ! 2017-06-12
 ### install.packages('quantmod')
 ### install.packages('Hmisc') ! 2016-12-21: having problems downloading and installing
 ###    Evidently, Hmisc isn't needed.
@@ -411,13 +412,24 @@ annual.delta_h = (annual.depreciation_consumer_durables +
   (lag(annual.net_stock_consumer_durables) + 
    lag(annual.net_stock_private_residential_structures))  
 
+annual.delta_all = (annual.depreciation_private_equipment_software +
+                    annual.depreciation_private_nonresidential_structures +
+                    annual.depreciation_consumer_durables +
+                    annual.depreciation_private_residential_structures) /
+  (lag(annual.net_stock_private_equipment_software) + 
+   lag(annual.net_stock_private_nonresidential_structures) +
+   lag(annual.net_stock_consumer_durables) + 
+   lag(annual.net_stock_private_residential_structures))
+
 ### Index for Korean war
 tKW <- '1954-01-01'
 tN = end(annual.delta_m)
 
 #Average depreciation rates since Korean War (expressed quarterly)
+delta_all_annual = mean(annual.delta_all[paste(tKW,tN,sep='/')])
 delta_m_annual = mean(annual.delta_m[paste(tKW,tN,sep='/')])
 delta_h_annual = mean(annual.delta_h[paste(tKW,tN,sep='/')])
+delta_all = 1-(1-mean(annual.delta_all[paste(tKW,tN,sep='/')]))^(.25)
 delta_m = 1-(1-mean(annual.delta_m[paste(tKW,tN,sep='/')]))^(.25)
 delta_h = 1-(1-mean(annual.delta_h[paste(tKW,tN,sep='/')]))^(.25)
 
@@ -737,8 +749,11 @@ for (iyear in i.start:i.end)
       }
   }
 
-annual_delta_e <- xts(annual_delta_e, order.by=seq(t1, t2, by='year'))
-quarter_real_ke <- xts(quarter_real_ke, order.by=seq(t1, t3, by='quarter'))
+###annual_delta_e <- xts(annual_delta_e, order.by=seq(t1, t2, by='year'))
+###quarter_real_ke <- xts(quarter_real_ke, order.by=seq(t1, t3, by='quarter'))
+### 2017-09-06: Fix end date problem.
+annual_delta_e <- as.xts(ts(annual_delta_e, start=1947, frequency=1))
+quarter_real_ke <- as.xts(ts(quarter_real_ke, start=1947, frequency=4))
 
 ### Nonresidential structures
 
@@ -761,8 +776,11 @@ for (iyear in i.start:i.end)
       }
   }
 
-annual_delta_s <- xts(annual_delta_s, order.by=seq(t1, t2, by='year'))
-quarter_real_ks <- xts(quarter_real_ks, order.by=seq(t1, t3, by='quarter'))
+###annual_delta_s <- xts(annual_delta_s, order.by=seq(t1, t2, by='year'))
+###quarter_real_ks <- xts(quarter_real_ks, order.by=seq(t1, t3, by='quarter'))
+### 2017-09-06: Fix end date problem.
+annual_delta_s <- as.xts(ts(annual_delta_s, start=1947, frequency=1))
+quarter_real_ks <- as.xts(ts(quarter_real_ks, start=1947, frequency=4))
 
 ### Residential structures (housing)
 
@@ -785,8 +803,11 @@ for (iyear in i.start:i.end)
       }
   }
 
-annual_delta_h <- xts(annual_delta_h, order.by=seq(t1, t2, by='year'))
-quarter_real_kh <- xts(quarter_real_kh, order.by=seq(t1, t3, by='quarter'))
+###annual_delta_h <- xts(annual_delta_h, order.by=seq(t1, t2, by='year'))
+###quarter_real_kh <- xts(quarter_real_kh, order.by=seq(t1, t3, by='quarter'))
+### 2017-09-06: Fix end date problem.
+annual_delta_h <- as.xts(ts(annual_delta_h, start=1947, frequency=1))
+quarter_real_kh <- as.xts(ts(quarter_real_kh, start=1947, frequency=4))
 
 ### Consumer durables
 
@@ -809,8 +830,11 @@ for (iyear in i.start:i.end)
       }
   }
 
-annual_delta_d <- xts(annual_delta_d, order.by=seq(t1, t2, by='year'))
-quarter_real_kd <- xts(quarter_real_kd, order.by=seq(t1, t3, by='quarter'))
+###annual_delta_d <- xts(annual_delta_d, order.by=seq(t1, t2, by='year'))
+###quarter_real_kd <- xts(quarter_real_kd, order.by=seq(t1, t3, by='quarter'))
+### 2017-09-06: Fix end date problem.
+annual_delta_d <- as.xts(ts(annual_delta_d, start=1947, frequency=1))
+quarter_real_kd <- as.xts(ts(quarter_real_kd, start=1947, frequency=4))
 
 ################################################################################
 
@@ -1064,42 +1088,45 @@ quarter_productivity <- quarter_real_pc_y/quarter_pc_hours
 
 ### Collection of data that is Hodrick-Prescott filtered
 
-us.data.1 <- merge(quarter_real_pc_y[paste('1954-01-01','2013-04-01',sep='/')], 
-	   quarter_real_pc_cm[paste('1954-01-01','2013-04-01',sep='/')], 
-	   quarter_real_pc_xall[paste('1954-01-01','2013-04-01',sep='/')],  
-	   quarter_real_pc_xmarket[paste('1954-01-01','2013-04-01',sep='/')], 
-	   quarter_real_pc_xhome[paste('1954-01-01','2013-04-01',sep='/')],  
-	   quarter_pc_hours[paste('1954-01-01','2013-04-01',sep='/')], 
-	   quarter_productivity[paste('1954-01-01','2013-04-01',sep='/')], 
-	   quarter_real_pc_kall[paste('1954-01-01','2013-04-01',sep='/')], 
-	   quarter_real_pc_kmarket[paste('1954-01-01','2013-04-01',sep='/')], 
-	   quarter_real_pc_kall[paste('1954-01-01','2013-04-01',sep='/')], 
-	   quarter_solow_residual[paste('1954-01-01','2013-04-01',sep='/')], 
-	   quarter_relative_price_investment[paste('1954-01-01','2013-04-01',sep='/')], 
-	   quarter_tau_k[paste('1954-01-01','2013-04-01',sep='/')], 
-	   quarter_tau_n[paste('1954-01-01','2013-04-01',sep='/')])
+t.start <- '1954-01-01'
+t.end <- '2015-04-01'
+
+us.data.1 <- merge(quarter_real_pc_y[paste(t.start,t.end,sep='/')], 
+	   quarter_real_pc_cm[paste(t.start,t.end,sep='/')], 
+	   quarter_real_pc_xall[paste(t.start,t.end,sep='/')],  
+	   quarter_real_pc_xmarket[paste(t.start,t.end,sep='/')], 
+	   quarter_real_pc_xhome[paste(t.start,t.end,sep='/')],  
+	   quarter_pc_hours[paste(t.start,t.end,sep='/')], 
+	   quarter_productivity[paste(t.start,t.end,sep='/')], 
+	   quarter_real_pc_kall[paste(t.start,t.end,sep='/')], 
+	   quarter_real_pc_kmarket[paste(t.start,t.end,sep='/')], 
+	   quarter_real_pc_kall[paste(t.start,t.end,sep='/')], 
+	   quarter_solow_residual[paste(t.start,t.end,sep='/')], 
+	   quarter_relative_price_investment[paste(t.start,t.end,sep='/')], 
+	   quarter_tau_k[paste(t.start,t.end,sep='/')], 
+	   quarter_tau_n[paste(t.start,t.end,sep='/')])
 
 ### Collection of data that is expressed as a percentage deviation from its mean
 
-us.data.2 <- merge(quarter_return_business_capital_pre_tax[paste('1954-01-01','2013-04-01',sep='/')], 
-	   quarter_return_business_capital_pre_tax_no_gain[paste('1954-01-01','2013-04-01',sep='/')], 
-	   quarter_return_business_capital_after_tax[paste('1954-01-01','2013-04-01',sep='/')], 
-	   quarter_return_business_capital_after_tax_no_gain[paste('1954-01-01','2013-04-01',sep='/')], 
-	   quarter_return_all_capital_pre_tax[paste('1954-01-01','2013-04-01',sep='/')], 
-	   quarter_return_all_capital_pre_tax_no_gain[paste('1954-01-01','2013-04-01',sep='/')], 
-	   quarter_return_all_capital_after_tax[paste('1954-01-01','2013-04-01',sep='/')], 
-	   quarter_return_all_capital_after_tax_no_gain[paste('1954-01-01','2013-04-01',sep='/')], 
-	   quarter_return_housing_capital_pre_tax[paste('1954-01-01','2013-04-01',sep='/')], 
-	   quarter_return_housing_capital_pre_tax_no_gain[paste('1954-01-01','2013-04-01',sep='/')], 
-	   quarter_return_housing_capital_after_tax[paste('1954-01-01','2013-04-01',sep='/')], 
-	   quarter_return_housing_capital_after_tax_no_gain[paste('1954-01-01','2013-04-01',sep='/')])
+us.data.2 <- merge(quarter_return_business_capital_pre_tax[paste(t.start,t.end,sep='/')], 
+	   quarter_return_business_capital_pre_tax_no_gain[paste(t.start,t.end,sep='/')], 
+	   quarter_return_business_capital_after_tax[paste(t.start,t.end,sep='/')], 
+	   quarter_return_business_capital_after_tax_no_gain[paste(t.start,t.end,sep='/')], 
+	   quarter_return_all_capital_pre_tax[paste(t.start,t.end,sep='/')], 
+	   quarter_return_all_capital_pre_tax_no_gain[paste(t.start,t.end,sep='/')], 
+	   quarter_return_all_capital_after_tax[paste(t.start,t.end,sep='/')], 
+	   quarter_return_all_capital_after_tax_no_gain[paste(t.start,t.end,sep='/')], 
+	   quarter_return_housing_capital_pre_tax[paste(t.start,t.end,sep='/')], 
+	   quarter_return_housing_capital_pre_tax_no_gain[paste(t.start,t.end,sep='/')], 
+	   quarter_return_housing_capital_after_tax[paste(t.start,t.end,sep='/')], 
+	   quarter_return_housing_capital_after_tax_no_gain[paste(t.start,t.end,sep='/')])
 
-us.data.filt <- xts(, order.by=seq(as.Date('1954-01-01'),as.Date('2013-04-01'),by='quarter'))
+us.data.filt <- xts(, order.by=seq(as.Date(t.start),as.Date(t.end),by='quarter'))
 
 for (i in 1:dim(us.data.1)[2])
   {
     y <- hpfilter(log(us.data.1[,i]), type="lambda", freq=1600)
-    us.data.filt <- merge(us.data.filt, xts(y$cycle, order.by=seq(as.Date('1954-01-01'),as.Date('2013-04-01'),by='quarter')))
+    us.data.filt <- merge(us.data.filt, xts(y$cycle, order.by=seq(as.Date(t.start),as.Date(t.end),by='quarter')))
   }
 
 for (i in 1:dim(us.data.2)[2])
@@ -1115,7 +1142,6 @@ T = T[1]
 ### Produce a table of second moments
 
 tex.file <- 'us-moments.tex'
-
 
 us.sstrg = c('Output', 'Consumption', 'Investment', 'Investment: market', 
 	 'Investment: home', 'Hours', 
@@ -1149,7 +1175,7 @@ cat(sprintf('\\newcolumntype{d}[1]{D{.}{.}{#1}}\n'), file=tex.file, append=TRUE)
 cat(sprintf('\\begin{document}\n'), file=tex.file, append=TRUE)
 cat(sprintf('\\begin{sidewaystable}\n'), file=tex.file, append=TRUE)
 cat(sprintf('\\begin{center}\n'), file=tex.file, append=TRUE)
-cat(sprintf('\\caption{U.S.\\@ 1954Q1--2012Q1: Selected Moments}\n'), file=tex.file, append=TRUE)
+cat(sprintf('\\caption{U.S.\\@ 1954Q1--2015Q1: Selected Moments}\n'), file=tex.file, append=TRUE)
 cat(sprintf('\\label{tab:rbc-lead-lag}\n'), file=tex.file, append=TRUE)
 cat(sprintf('\\begin{tabular}{l . . . . . . . . . .}\n'), file=tex.file, append=TRUE)
 cat(sprintf('\\toprule\n'), file=tex.file, append=TRUE)
@@ -1169,8 +1195,6 @@ cat(sprintf('\t\t& \\multicolumn{1}{c}{$x_{t+4}$}\n'), file=tex.file, append=TRU
 cat(sprintf('\\\\\n'), file=tex.file, append=TRUE)
 cat(sprintf('\\midrule\n'), file=tex.file, append=TRUE)
 
-
-
 for (i in 1:N)
   {
     us.sd <- 100*sqrt(var(as.numeric(us.data.filt[,i])))
@@ -1180,7 +1204,6 @@ for (i in 1:N)
     ##print(sprintf("%f %f %f %f %f %f %f %f %f %f", us.sd, us.ccf[1], us.ccf[2], us.ccf[3], us.ccf[4], us.ccf[5], us.ccf[6], us.ccf[7], us.ccf[8], us.ccf[9]))
     cat(sprintf("%-50s & %8.2f & %8.2f & %8.2f & %8.2f & %8.2f & %8.2f & %8.2f & %8.2f & %8.2f & %8.2f\\\\", us.sstrg[i], us.sd, us.ccf[9], us.ccf[8], us.ccf[7], us.ccf[6], us.ccf[5], us.ccf[4], us.ccf[3], us.ccf[2], us.ccf[1]), sep='\n', file=tex.file, append=TRUE)
   }
-
 
 cat(sprintf('\\bottomrule\n'), file=tex.file, append=TRUE)
 cat(sprintf('\\end{tabular}\n'), file=tex.file, append=TRUE)
@@ -1321,7 +1344,7 @@ names(us.data) <- c("Output",
                     
 
 write.table(us.data, file='usdata.csv', row.names=FALSE, col.names=FALSE, sep=',', na='NaN')
-write.zoo(us.data, file='usdata.dat')
+write.zoo(us.data, file='usdata.dat') # 2017-03-27: write all the data (with dates)
 
 ### Write the `shocks' to file
 
@@ -1336,8 +1359,8 @@ write.table(shocks, file='shocks.csv', row.names=FALSE, col.names=FALSE, sep=','
 ### Drop observations up to the Korean War
 
 log_quarter_solow_residual <- log(quarter_solow_residual)
-x = lag(log_quarter_solow_residual)
-y = log_quarter_solow_residual
+x <- lag(log_quarter_solow_residual)
+y <- log_quarter_solow_residual
 y <- y[paste(tKW,end(quarter_solow_residual),sep='/')]
 x <- x[paste(tKW,end(quarter_solow_residual),sep='/')]
 
