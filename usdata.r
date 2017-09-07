@@ -1089,37 +1089,72 @@ quarter_productivity <- quarter_real_pc_y/quarter_pc_hours
 ### Collection of data that is Hodrick-Prescott filtered
 
 t.start <- '1954-01-01'
-t.end <- '2015-04-01'
+#t.end <- '2016-04-01'
 
-us.data.1 <- merge(quarter_real_pc_y[paste(t.start,t.end,sep='/')], 
-	   quarter_real_pc_cm[paste(t.start,t.end,sep='/')], 
-	   quarter_real_pc_xall[paste(t.start,t.end,sep='/')],  
-	   quarter_real_pc_xmarket[paste(t.start,t.end,sep='/')], 
-	   quarter_real_pc_xhome[paste(t.start,t.end,sep='/')],  
-	   quarter_pc_hours[paste(t.start,t.end,sep='/')], 
-	   quarter_productivity[paste(t.start,t.end,sep='/')], 
-	   quarter_real_pc_kall[paste(t.start,t.end,sep='/')], 
-	   quarter_real_pc_kmarket[paste(t.start,t.end,sep='/')], 
-	   quarter_real_pc_kall[paste(t.start,t.end,sep='/')], 
-	   quarter_solow_residual[paste(t.start,t.end,sep='/')], 
-	   quarter_relative_price_investment[paste(t.start,t.end,sep='/')], 
-	   quarter_tau_k[paste(t.start,t.end,sep='/')], 
-	   quarter_tau_n[paste(t.start,t.end,sep='/')])
+###us.data.1 <- merge(quarter_real_pc_y[paste(t.start,t.end,sep='/')], 
+###	   quarter_real_pc_cm[paste(t.start,t.end,sep='/')], 
+###	   quarter_real_pc_xall[paste(t.start,t.end,sep='/')],  
+###	   quarter_real_pc_xmarket[paste(t.start,t.end,sep='/')], 
+###	   quarter_real_pc_xhome[paste(t.start,t.end,sep='/')],  
+###	   quarter_pc_hours[paste(t.start,t.end,sep='/')], 
+###	   quarter_productivity[paste(t.start,t.end,sep='/')], 
+###	   quarter_real_pc_kall[paste(t.start,t.end,sep='/')], 
+###	   quarter_real_pc_kmarket[paste(t.start,t.end,sep='/')], 
+###	   quarter_real_pc_kall[paste(t.start,t.end,sep='/')], 
+###	   quarter_solow_residual[paste(t.start,t.end,sep='/')], 
+###	   quarter_relative_price_investment[paste(t.start,t.end,sep='/')], 
+###	   quarter_tau_k[paste(t.start,t.end,sep='/')], 
+###	   quarter_tau_n[paste(t.start,t.end,sep='/')])
+
+us.data.1 <- merge(quarter_real_pc_y, 
+	   quarter_real_pc_cm, 
+	   quarter_real_pc_xall,  
+	   quarter_real_pc_xmarket, 
+	   quarter_real_pc_xhome,  
+	   quarter_pc_hours, 
+	   quarter_productivity, 
+	   quarter_real_pc_kall, 
+	   quarter_real_pc_kmarket, 
+	   quarter_real_pc_kall, 
+	   quarter_solow_residual, 
+	   quarter_relative_price_investment, 
+	   quarter_tau_k, 
+	   quarter_tau_n)
 
 ### Collection of data that is expressed as a percentage deviation from its mean
 
-us.data.2 <- merge(quarter_return_business_capital_pre_tax[paste(t.start,t.end,sep='/')], 
-	   quarter_return_business_capital_pre_tax_no_gain[paste(t.start,t.end,sep='/')], 
-	   quarter_return_business_capital_after_tax[paste(t.start,t.end,sep='/')], 
-	   quarter_return_business_capital_after_tax_no_gain[paste(t.start,t.end,sep='/')], 
-	   quarter_return_all_capital_pre_tax[paste(t.start,t.end,sep='/')], 
-	   quarter_return_all_capital_pre_tax_no_gain[paste(t.start,t.end,sep='/')], 
-	   quarter_return_all_capital_after_tax[paste(t.start,t.end,sep='/')], 
-	   quarter_return_all_capital_after_tax_no_gain[paste(t.start,t.end,sep='/')], 
-	   quarter_return_housing_capital_pre_tax[paste(t.start,t.end,sep='/')], 
-	   quarter_return_housing_capital_pre_tax_no_gain[paste(t.start,t.end,sep='/')], 
-	   quarter_return_housing_capital_after_tax[paste(t.start,t.end,sep='/')], 
-	   quarter_return_housing_capital_after_tax_no_gain[paste(t.start,t.end,sep='/')])
+###us.data.2 <- merge(quarter_return_business_capital_pre_tax[paste(t.start,t.end,sep='/')], 
+###	   quarter_return_business_capital_pre_tax_no_gain[paste(t.start,t.end,sep='/')], 
+###	   quarter_return_business_capital_after_tax[paste(t.start,t.end,sep='/')], 
+###	   quarter_return_business_capital_after_tax_no_gain[paste(t.start,t.end,sep='/')], 
+###	   quarter_return_all_capital_pre_tax[paste(t.start,t.end,sep='/')], 
+###	   quarter_return_all_capital_pre_tax_no_gain[paste(t.start,t.end,sep='/')], 
+###	   quarter_return_all_capital_after_tax[paste(t.start,t.end,sep='/')], 
+###	   quarter_return_all_capital_after_tax_no_gain[paste(t.start,t.end,sep='/')], 
+###	   quarter_return_housing_capital_pre_tax[paste(t.start,t.end,sep='/')], 
+###	   quarter_return_housing_capital_pre_tax_no_gain[paste(t.start,t.end,sep='/')], 
+###	   quarter_return_housing_capital_after_tax[paste(t.start,t.end,sep='/')], 
+###	   quarter_return_housing_capital_after_tax_no_gain[paste(t.start,t.end,sep='/')])
+
+us.data.2 <- merge(quarter_return_business_capital_pre_tax, 
+	   quarter_return_business_capital_pre_tax_no_gain, 
+	   quarter_return_business_capital_after_tax, 
+	   quarter_return_business_capital_after_tax_no_gain, 
+	   quarter_return_all_capital_pre_tax, 
+	   quarter_return_all_capital_pre_tax_no_gain, 
+	   quarter_return_all_capital_after_tax, 
+	   quarter_return_all_capital_after_tax_no_gain, 
+	   quarter_return_housing_capital_pre_tax, 
+	   quarter_return_housing_capital_pre_tax_no_gain, 
+	   quarter_return_housing_capital_after_tax, 
+	   quarter_return_housing_capital_after_tax_no_gain)
+
+xxx <- merge(us.data.1, us.data.2)
+xxx <- xxx[complete.cases(xxx)]
+t.end <- end(xxx)
+
+us.data.1 <- us.data.1[paste(t.start,t.end,sep='/'),]
+us.data.2 <- us.data.2[paste(t.start,t.end,sep='/'),]
 
 us.data.filt <- xts(, order.by=seq(as.Date(t.start),as.Date(t.end),by='quarter'))
 
@@ -1175,7 +1210,8 @@ cat(sprintf('\\newcolumntype{d}[1]{D{.}{.}{#1}}\n'), file=tex.file, append=TRUE)
 cat(sprintf('\\begin{document}\n'), file=tex.file, append=TRUE)
 cat(sprintf('\\begin{sidewaystable}\n'), file=tex.file, append=TRUE)
 cat(sprintf('\\begin{center}\n'), file=tex.file, append=TRUE)
-cat(sprintf('\\caption{U.S.\\@ 1954Q1--2015Q1: Selected Moments}\n'), file=tex.file, append=TRUE)
+###cat(sprintf('\\caption{U.S.\\@ 1954Q1--2015Q1: Selected Moments}\n'), file=tex.file, append=TRUE)
+cat(sprintf('\\caption{U.S.\\@ %s--%s: Selected Moments}\n', t.start, t.end), file=tex.file, append=TRUE)
 cat(sprintf('\\label{tab:rbc-lead-lag}\n'), file=tex.file, append=TRUE)
 cat(sprintf('\\begin{tabular}{l . . . . . . . . . .}\n'), file=tex.file, append=TRUE)
 cat(sprintf('\\toprule\n'), file=tex.file, append=TRUE)
