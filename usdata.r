@@ -124,8 +124,10 @@ fredsym <- c(
     "B235RC1A027NBEA",	# Federal government current tax receipts: Taxes on production and imports: Customs duties
     "B234RC1A027NBEA",	# Federal government current tax receipts: Taxes on production and imports: Excise taxes
     "ASLSTAX", 		# State and Local Government: Taxes on production and imports: Sales Taxes
-    "W209RC1A027NBEA",	# Compensation of Employees (Bil.$)
-    "A553RC1A027NBEA",	# Government Wages and Salaries (Bil.$)
+    "A033RC1A027NBEA",	# National income: Compensation of employees
+    #"W209RC1A027NBEA",	# Compensation of Employees (Bil.$) <-- DISCONTINUED; use previous entry
+    "A553RC1A027NBEA",	# Government Wages and Salaries (Bil.$) *** DISCONTINUED; use next entry
+    "B202RC1A027NBEA",	# Government Wages and Salaries (Bil.$)
     "A048RC1A027NBEA",	# Rental Income of Persons with CCAdj (Bil.$)
     "A051RC1A027NBEA",	# Corporate Profits with IVA and CCAdj (Bil.$)
     "W255RC1A027NBEA",	# Net Interest and Miscellaneous Payments (Bil.$)
@@ -158,7 +160,7 @@ fredsym <- c(
     "M1GTOTL1STNR0",	# Depreciation: Gov Nonresidential Fixed Assets: Structures (Bil.$)
     "M1GTOTL1SA000",	# Depreciation: Res Fixed Assets: Government (Bil.$)
     "M1CTOTL1CD000",	# Depreciation: Consumer Durable Goods (Bil.$)
-    "A553RC1A027NBEA",	# Government Wages and Salaries (Bil.$) # not used?
+    "A553RC1A027NBEA",	# Government Wages and Salaries (Bil.$) # duplicate??
     "A955RC1A027NBEA",	# Government consumption expenditures
     "B009RC1A027NBEA",	# Private Nonresidential Investment: Structures (Bil.$)
     "Y033RC1A027NBEA",	# Private Nonresidential Fixed Investment: Equipment (Bil.$)
@@ -187,7 +189,8 @@ fredsym <- c(
     "B234RC1Q027SBEA",	# Federal Government Excise Taxes
     "B235RC1Q027SBEA",	# Federal Government Custom Duties
     "GDICOMP",		# Compensation of Employees, Paid: Domestic Employers (SAAR, Bil.$)
-    "A576RC1Q027SBEA",	# Wages & Salaries (SAAR, Bil.$)
+    "A576RC1Q027SBEA",	# Wages & Salaries (SAAR, Bil.$) *** DISCONTINUED - use WASCUR
+    "WASCUR",		# Wages & Salaries (SAAR, Bil.$)
     "W272RC1Q027SBEA",	# Net Interest & Miscellaneous Payments: Domestic Industries (SAAR, Bil.$)
     "PROPINC",		# Proprietors' Income with IVA and CCAdj (SAAR, Bil.$)
     "RENTIN",		# Rental Income of Persons with CCAdj (SAAR, Bil.$)
@@ -209,7 +212,8 @@ fredsym <- c(
     "DSERRG3Q086SBEA",	# Personal consumption expenditures: Services (chain-type price index), 2009=100
     "GDP",		# Gross Domestic Product (SAAR, Bil.$)
     "DHUTRC1Q027SBEA",	# 	PCE: Housing Services and utilities (starts 1959I)
-    "A553RC1Q027SBEA",	# Government Wages and Salaries (SAAR, Bil.$)
+    "A553RC1Q027SBEA",	# Government Wages and Salaries (SAAR, Bil.$) *** DISCONTINUED; use next entry?
+    "B202RC1Q027SBEA",	# Government Wages and Salaries (Bil.$)
     "A955RC1Q027SBEA",	# Government consumption expenditures
 #    "DHSGRC1A027NBEA",	# (only annual data)	Personal Consumption Expenditures: Housing (SAAR, Mil.$)
     "B009RC1Q027SBEA",	# Private Nonresidential Investment: Structures (SAAR, Bil.$)
@@ -249,8 +253,10 @@ annual.state_local_property_taxes <- S210401A027NBEA
 annual.state_local_sales_taxes <- ASLSTAX
 annual.gov_excise_taxes <- B234RC1A027NBEA
 annual.gov_custom_duties <- B235RC1A027NBEA
-annual.compensation_of_employees <- W209RC1A027NBEA
-annual.gov_wages_and_salaries <- A553RC1A027NBEA
+#annual.compensation_of_employees <- W209RC1A027NBEA
+annual.compensation_of_employees <- A033RC1A027NBEA #2018-05-12
+#annual.gov_wages_and_salaries <- A553RC1A027NBEA
+annual.gov_wages_and_salaries <- B202RC1A027NBEA # 2018-03-02
 quarter.gov_consumption_expenditures <- A955RC1Q027SBEA
 annual.rental_income <- A048RC1A027NBEA
 annual.corporate_profits <- A051RC1A027NBEA
@@ -302,7 +308,8 @@ quarter.state_local_sales_taxes <- B248RC1Q027SBEA
 quarter.gov_excise_taxes <- B234RC1Q027SBEA
 quarter.gov_custom_duties <- B235RC1Q027SBEA
 quarter.compensation_of_employees <- GDICOMP
-quarter.wage_salary_accruals <- A576RC1Q027SBEA
+#quarter.wage_salary_accruals <- A576RC1Q027SBEA
+quarter.wage_salary_accruals <- WASCUR # 2019-03-02
 quarter.net_interest <- W272RC1Q027SBEA
 quarter.proprietors_income <- PROPINC
 quarter.rental_income <- RENTIN
@@ -324,7 +331,8 @@ quarter.real_PCE_nondurables <- PCND * 100 / DNDGRG3Q086SBEA
 quarter.real_PCE_services <- PCESV * 100 / DSERRG3Q086SBEA
 quarter.GDP <- GDP
 quarter.PCE_housing_services <- DHUTRC1Q027SBEA
-quarter.gov_wages_and_salaries <- A553RC1Q027SBEA
+#quarter.gov_wages_and_salaries <- A553RC1Q027SBEA
+quarter.gov_wages_and_salaries <- B202RC1Q027SBEA # 2018-03-02
 quarter.gov_consumption_expenditures <- A955RC1Q027SBEA
 quarter.private_investment_nonresidential_structures <- B009RC1Q027SBEA
 quarter.private_investment_equipment_software <- Y033RC1Q027SBEA
