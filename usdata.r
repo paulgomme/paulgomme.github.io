@@ -96,6 +96,29 @@
 ### install.packages('FRAPO')
 ### install.packages('nleqslv') ! Added 2016-12-21
 
+### 2018-08-30 The mFilter package is "missing" at CRAN.  There are two
+### work-arounds.  The first is to visit
+### https://github.com/cran/mFilter/blob/master/R/hpfilter.R and
+### copy-and-paste the contents to the file hpfilter.R
+### Then, in R:
+###     source("hpfilter.R")
+###
+### The second is to "force" CRAN to let you install the "old" version of
+### mFilter.  Doing so is a bit involved.  I use Linux Mint and needed the
+### ssl libraries.  From a command prompt, run:
+###     sudo apt install libssl-dev
+### Then, in R:
+###     install.packages("openssl")
+###     install.packages("git2r")
+###     install.packages("httr")
+###     install.packages("devtools")
+### Notice that the part really needed is "devtools", but devtools depends on
+### the other packages (the first of which require libssl-dev).  If you have
+### already installed devtools, then skip the install.packages above.  Finally:
+###     require(devtools)
+###     install_version("mFilter", version="0.1-3", repos="http://cran.us.r-project.org")
+### Hopefully someone will notice that mFilter is actually used and fix this problem.
+
 rm(list=ls())
 
 library("quantmod")
@@ -1123,7 +1146,7 @@ us.data.1 <- merge(quarter_real_pc_y,
 	   quarter_productivity, 
 	   quarter_real_pc_kall, 
 	   quarter_real_pc_kmarket, 
-	   quarter_real_pc_kall, 
+	   quarter_real_pc_khome, 
 	   quarter_solow_residual, 
 	   quarter_relative_price_investment, 
 	   quarter_tau_k, 
@@ -1358,6 +1381,61 @@ us.data <- merge(quarter_real_pc_y,
 	   quarter_return_housing_capital_after_tax, 
 	   quarter_return_housing_capital_after_tax_no_gain)
 
+##############################################################################
+#
+#html.file <- 'us-moments.html'
+#
+#if (file.exists(html.file))
+#  {
+#    file.remove(html.file)
+#  }
+#
+#cat(sprintf('<HTML>\n'), file=html.file, append=TRUE)
+#cat(sprintf('<HEAD>\n'), file=html.file, append=TRUE)
+#cat(sprintf('<TITLE>U.S. Business Cycle Moments</TITLE>\n'), file=html.file, append=TRUE)
+#cat(sprintf('</HEAD>\n'), file=html.file, append=TRUE)
+#cat(sprintf('<BODY>\n'), file=html.file, append=TRUE)
+#cat(sprintf('<H1>Hodrick-Prescott Filtered U.S. Business Cycle Moments</H1>\n'), file=html.file, append=TRUE)
+#
+#cat(sprintf('<TABLE style="width:100%>\n'), file=html.file, append=TRUE)
+#
+#cat(sprintf('<caption>U.S.\\@ %s--%s: Selected Moments</caption>\n', t.start, t.end), file=html.file, append=TRUE)
+#
+#cat(sprintf('<tr>\n'), file=html.file, append=TRUE)
+#cat(sprintf('<th>Standard</th>\n'), file=html.file, append=TRUE)
+#cat(sprintf('<th colspan="9">Cross Correlation of Real Output With</th>\n'), file=html.file, append=TRUE)
+#cat(sprintf('</tr>\n'), file=html.file, append=TRUE)
+#
+#cat(sprintf('<tr>\n'), file=html.file, append=TRUE)
+#cat(sprintf('<th>Deviation</th>\n'), file=html.file, append=TRUE)
+#cat(sprintf('<th>x<sub>t-4</sub></th>\n'), file=html.file, append=TRUE)
+#cat(sprintf('<th>x<sub>t-3</sub></th>\n'), file=html.file, append=TRUE)
+#cat(sprintf('<th>x<sub>t-2</sub></th>\n'), file=html.file, append=TRUE)
+#cat(sprintf('<th>x<sub>t-1</sub></th>\n'), file=html.file, append=TRUE)
+#cat(sprintf('<th>x<sub>t</sub></th>\n'), file=html.file, append=TRUE)
+#cat(sprintf('<th>x<sub>t+1</sub></th>\n'), file=html.file, append=TRUE)
+#cat(sprintf('<th>x<sub>t+2</sub></th>\n'), file=html.file, append=TRUE)
+#cat(sprintf('<th>x<sub>t+3</sub></th>\n'), file=html.file, append=TRUE)
+#cat(sprintf('<th>x<sub>t+4</sub></th>\n'), file=html.file, append=TRUE)
+#cat(sprintf('</tr>\n'), file=html.file, append=TRUE)
+#
+#for (i in 1:N)
+#  {
+#    us.sd <- 100*sqrt(var(as.numeric(us.data.filt[,i])))
+#    us.ac <- cor(us.data.filt[1:(T-1),i], us.data.filt[2:T,i])
+#    zzz <- ccf(as.ts(us.data.filt[,1]), as.ts(us.data.filt[,i]), lag.max =4)
+#    us.ccf <- as.numeric(zzz$acf)
+#    cat(sprintf("<tr><td>%-50s </td> <td> %8.2f </td> <td> %8.2f </td> <td> %8.2f </td> <td> %8.2f </td> <td> %8.2f </td> <td> %8.2f </td> <td> %8.2f </td> <td> %8.2f </td> <td> %8.2f </td> <td> %8.2f </td></tr>", us.sstrg[i], us.sd, us.ccf[9], us.ccf[8], us.ccf[7], us.ccf[6], us.ccf[5], us.ccf[4], us.ccf[3], us.ccf[2], us.ccf[1]), sep='\n', file=html.file, append=TRUE)
+#  }
+#
+#cat(sprintf('</TABLE>\n'), file=html.file, append=TRUE)
+#cat(sprintf('</BODY>\n'), file=html.file, append=TRUE)
+#cat(sprintf('</HTML>\n'), file=html.file, append=TRUE)
+#
+##############################################################################
+
+
+
 # 2017-03-27: Added proper names
 names(us.data) <- c("Output",
                     "Consumption",
@@ -1389,6 +1467,8 @@ names(us.data) <- c("Output",
 
 write.table(us.data, file='usdata.csv', row.names=FALSE, col.names=FALSE, sep=',', na='NaN')
 write.zoo(us.data, file='usdata.dat') # 2017-03-27: write all the data (with dates)
+
+write.zoo(annual_alpha, file='alpha.dat', sep='\t', na='?', col.names=FALSE)
 
 ### Write the `shocks' to file
 
