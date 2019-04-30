@@ -139,7 +139,7 @@ fredsym <- c(
     "W165RC1A027NBEA",	# Housing Net Operating Surplus (Bil.$)
     "B1037C1A027NBEA",	# Housing: Net Interest (Bil.$)
     "W166RC1A027NBEA",	# Housing Net Operating Surplus: Current Transfer Payments (Bil.$)
-    "B1034C1A027NBEA",	# Housing: Proprietors Income with IVA & CCAdj (Bil.$)
+    "B1034C1A027NBEA",	# Housing: Proprietors' Income with IVA & CCAdj (Bil.$)
     "B1035C1A027NBEA",	# Housing: Rental Income of Persons w/CCadj (Bil.$)
     "B1036C1A027NBEA",	# Housing: Corporate Profits w/IVA & CCadj (Bil.$)
     "W153RC1A027NBEA",	# Housing Net Operating Surplus: Current Surplus of Govt Enterprises (Bil.$)
@@ -477,8 +477,8 @@ annual_income_capital = annual.rental_income +
   annual.gross_value_added_gov - annual.gross_housing_value_added - 
   (annual.net_national_product - annual.gov_net_national_product - 
    annual.net_housing_value_added) 
-annual_alpha = annual_income_capital / (annual_income_capital + annual_income_labor) 
-alpha_mean= mean(annual_alpha[paste(tKW,tN,sep='/')])
+annual_alpha <- annual_income_capital / (annual_income_capital + annual_income_labor) 
+alpha_mean <- mean(annual_alpha[paste(tKW,tN,sep='/')])
 
 ### `Usual' macroaggregates
 
@@ -887,6 +887,7 @@ quarter_business_income_pre_tax <-
 quarter_tau_h <- quarter.personal_taxes / 
     (quarter.wage_salary_accruals + quarter.net_interest + 
      quarter.proprietors_income + quarter.rental_income)
+
 quarter_tau_n <- (quarter_tau_h*(quarter.wage_salary_accruals + 
 				(1-alpha_mean)*quarter.proprietors_income) 
 		 + quarter.contributions_gov_social_insurance) / 
