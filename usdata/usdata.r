@@ -93,7 +93,7 @@
 ### install.packages('Hmisc') ! 2016-12-21: having problems downloading and installing
 ###    Evidently, Hmisc isn't needed.
 ### install.packages('mFilter')
-### install.packages('FRAPO')
+### install.packages('FRAPO') ! Not necessary?
 ### install.packages('nleqslv') ! Added 2016-12-21
 
 ### 2018-08-30 The mFilter package is "missing" at CRAN.  There are two
@@ -227,6 +227,8 @@ fredsym <- c(
     "W276RC1Q027SBEA",	# Consumption of Fixed Capital: Domestic Business (Bil.$)
     "CBI",		# Change in Private Inventories (SAAR, Bil.$)
     "A2009C1Q027SBEA",	# Gross Housing Value Added (SAAR, Bil.$)
+#    "A024RC1Q027SBEA", 	# Consumption of fixed capital: Private
+    "B2607C1Q027SBEA",	# Consumption of fixed capital: Private: Households and institutions: Owner-occupied housing
     "USRECQ",		# Quarterly NBER Recession/Expansion: Recession Shading (+1/-1)
     "CPIAUCSL",		# 	CPI-U: All Items (SA, 1982-84=100) (monthly)
     "CNP16OV",		# Civilian Noninstitutional Population: 16 Years and Over (NSA, Thous) (monthly)
@@ -343,7 +345,6 @@ quarter.business_transfer_payments <- B029RC1Q027SBEA
 quarter.net_operating_surplus_private <- W260RC1Q027SBEA
 quarter.employer_contributions_gov_social_insurance <- B039RC1Q027SBEA
 quarter.contributions_gov_social_insurance <- A061RC1Q027SBEA
-quarter.consumption_private_fixed_capital <- A024RC1Q027SBEA
 quarter.consumption_fixed_capital_business <- W276RC1Q027SBEA
 quarter.change_private_inventories <- CBI
 quarter.gross_housing_value_added <- A2009C1Q027SBEA
@@ -369,6 +370,10 @@ quarter.gov_gross_investment_equipment_software <- Y054RC1Q027SBEA
 quarter.private_nonresidential_fixed_investment <- PNFI
 quarter.real_private_nonresidential_fixed_investment_price <- B008RG3Q086SBEA
 quarter.private_inventories <- A371RC1Q027SBEA
+quarter.private_capital_consumption <- A024RC1Q027SBEA
+quarter.private_capital_consumption_housing <- B2607C1Q027SBEA
+
+
 
 ## Monthly data; convert to quarterly.
 
@@ -937,6 +942,24 @@ quarter_tau_k <- (quarter_tau_h*(quarter.net_interest +
      (1-alpha_mean)*(quarter.proprietors_income - 
 		quarter_housing_proprietors_income))  
 
+### 2019-09-10: The following capital tax rate calculation is consistent with
+### the measurement in Gomme and Rupertr (2007)
+
+quarter_tau_k_gr <- (quarter_tau_h*(quarter.net_interest + 
+				 alpha_mean*quarter.proprietors_income + 
+				 quarter.rental_income - 
+				 (quarter_housing_net_interest + 
+				  alpha_mean*quarter_housing_proprietors_income 
+				  + quarter_housing_rental_income)) + 
+		 quarter.gov_taxes_corp_income + 
+		 quarter_real_estate_taxes_business) / 
+    (quarter.net_operating_surplus_private 
+      - quarter_housing_net_operating_surplus
+      + quarter.private_capital_consumption
+      - quarter.private_capital_consumption_housing
+      - (1-alpha_mean)*(quarter.proprietors_income - 
+		quarter_housing_proprietors_income))  
+
 ### 2016-08-15: Added calculation for consumption tax rate
 
 quarter_consumption_taxes <- quarter.state_local_sales_taxes + quarter.gov_excise_taxes + quarter.gov_custom_duties
@@ -1173,6 +1196,9 @@ quarter_productivity <- quarter_real_pc_y/quarter_pc_hours
 
 ### Collection of data that is Hodrick-Prescott filtered
 
+print(" Preparing to HP filter ")
+
+
 t.start <- '1954-01-01'
 #t.end <- '2016-04-01'
 
@@ -1258,6 +1284,9 @@ for (i in 1:dim(us.data.2)[2])
 T <- dim(us.data.filt)
 N = T[2]
 T = T[1]
+
+print(" Done HP filtering ")
+
 
 ### Produce a table of second moments
 
@@ -1346,7 +1375,7 @@ cat(sprintf('\\cmidrule{2-5}  \\cmidrule{7-10}\n'), file=tex.file, append=TRUE)
 cat(sprintf('Year & \\multicolumn{1}{c}{Q1}  & \\multicolumn{1}{c}{Q2} & \\multicolumn{1}{c}{Q3} & \\multicolumn{1}{c}{Q4} && \\multicolumn{1}{c}{Q1}  & \\multicolumn{1}{c}{Q2} & \\multicolumn{1}{c}{Q3} & \\multicolumn{1}{c}{Q4}   \\\\\n'), file=tex.file, append=TRUE)
 cat(sprintf('\\midrule\n'), file=tex.file, append=TRUE)
 
-T = 59
+T = 64
 
 for (i in 1:T)
   {
@@ -1507,15 +1536,15 @@ names(us.data) <- c("Output",
                     "Tax rate: labor income",
                     "Return to business capital, pre-tax",
                     "Return to business capital, pre-tax, no capital gain",
-                    "Return to business capital, after--tax",
+                    "Return to business capital, after-tax",
                     "Return to business capital, after-tax, no capital gain",
                     "Return to all capital, pre-tax",
                     "Return to all capital, pre-tax, no capital gain",
-                    "Return to all capital, after--tax",
+                    "Return to all capital, after-tax",
                     "Return to all capital, after-tax, no capital gain",
                     "Return to housing capital, pre-tax",
                     "Return to housing capital, pre-tax, no capital gain",
-                    "Return to housing capital, after--tax",
+                    "Return to housing capital, after-tax",
                     "Return to housing capital, after-tax, no capital gain")
                     
 
