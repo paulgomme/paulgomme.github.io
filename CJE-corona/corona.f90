@@ -224,6 +224,24 @@ module CORONA_FUNCTIONS
        real(dp) :: U4
      end function U4
   end interface
+  
+  interface
+     subroutine EXTPATH(FUNC, xbest, fbest, ftol, f_term)
+       use PRECISION
+       real(long), dimension(:,:), intent(inout) :: xbest
+       real(long), dimension(:,:), intent(out) :: fbest
+       real(long), intent(in) :: ftol
+       logical, intent(in) :: f_term
+       interface
+          function FUNC(x, tt)
+            use precision
+            real(long), dimension(:,:), intent(in) :: x
+            integer, intent(in) :: tt
+            real(long), dimension(size(x,1)) :: FUNC
+          end function FUNC
+       end interface
+     end subroutine EXTPATH
+  end interface
 end module CORONA_FUNCTIONS
 !=============================================================================
 program CORONA
@@ -1227,3 +1245,118 @@ function U4(c_in, g_in, d_in, h_in, xi_in)
           & * p%gamma * p%phi * (1d0+1d0/p%theta)*h_in**(1d0/p%theta)
   endif
 end function U4
+!=============================================================================
+subroutine EXTPATH(FUNC, xbest, fbest, ftol, f_term)
+  use PRECISION
+  use lapack95, only : GESV
+  use TOOLS, only : EYE
+  implicit none
+  real(long), dimension(:,:), intent(inout) :: xbest
+  real(long), dimension(:,:), intent(out) :: fbest
+  real(long), intent(in) :: ftol
+  logical, intent(in) :: f_term
+  real(long) :: dbest, dnew
+  real(long), dimension(:), allocatable :: ff, fff
+  real(long), dimension(:,:), allocatable :: xx, xnew, fnew, d, step, Aye, xxx
+  real(long), dimension(:,:,:), allocatable :: Jac, C
+  real(long) :: ptb = 1d-7
+  integer :: i, j, it, N, T, icount, ITMAX=100, info
+
+  interface
+     function FUNC(x, tt)
+       use precision
+       real(long), dimension(:,:), intent(in) :: x
+       integer, intent(in) :: tt
+       real(long), dimension(size(x,1)) :: FUNC
+     end function FUNC
+  end interface
+
+  T = size(xbest,2)
+  N = size(xbest,1)
+
+  allocate(xx(N,3), ff(N), xnew(N,T), fnew(N,T), step(N,T))
+  allocate(Jac(3,N,N), C(T,N,N), d(N,T), Aye(N,N))
+  allocate(xxx(N,3), fff(N))
+
+  fbest = 0d0
+  fnew = 0d0
+
+  do it = 2, T-1
+     xx = xbest(:,it-1:it+1)
+     fbest(:,it) = FUNC(xx, it)
+  end do
+
+  dbest = DIST(fbest)
+
+  COUNT: do icount = 1, ITMAX
+     if (dbest < ftol) exit COUNT
+
+     do it = 2, T-1
+        do i = 1, 3
+           do j = 1, N
+              xx = xbest(:,it-1:it+1)
+              xx(j,i) = xx(j,i)*(1d0+ptb) + ptb
+              ff = FUNC(xx, it)
+              Jac(i,:,j) = (ff - fbest(:,it)) / (xx(j,i) - xbest(j,it+i-2))
+           end do
+        end do
+
+        if (it == 2) then
+           C(it,:,:) = eye(N)
+           call GESV(Jac(2,:,:), C(it,:,:), info=info)
+           if (info /= 0) print *, 'EXTPATH info=', info
+           d(:,it) = -matmul(C(it,:,:), fbest(:,it))
+           C(it,:,:) = matmul(C(it,:,:), Jac(3,:,:))
+        else
+           Jac(2,:,:) = Jac(2,:,:) - matmul(Jac(1,:,:), C(it-1,:,:))
+           C(it,:,:) = eye(N)
+           call GESV(Jac(2,:,:), C(it,:,:), info=info)
+           if (info /= 0) print *, 'EXTPATH info=', info
+           d(:,it) = -matmul(C(it,:,:), &
+                & fbest(:,it) + matmul(Jac(1,:,:), d(:,it-1)))
+           C(it,:,:) = matmul(C(it,:,:), Jac(3,:,:))
+        end if
+     end do
+
+     step(:,T) = 0d0
+     if (f_term) then
+        step(:,T-1) = d(:,T-1)
+     else
+        Aye = eye(N) + C(T-1,:,:)
+        step(:,T-1) = d(:,T-1)
+        call GESV(Aye, step(:,T-1), info=info)
+        step(:,T) = step(:,T-1)
+     end if
+
+     do it = T-2, 2, -1
+        step(:,it) = d(:,it) - matmul(C(it,:,:), step(:,it+1)) 
+     end do
+     step(:,1) = 0d0
+
+     STEPS: do i = 1, 50
+        xnew = xbest + step
+        do it = 2, T-1
+           fnew(:,it) = FUNC(xnew(:,it-1:it+1), it)
+        end do
+        dnew = DIST(fnew)
+        if (dnew < dbest) exit STEPS
+        step = 0.5d0 * step
+     end do STEPS
+
+     if (dnew > dbest) exit COUNT
+     if (maxval(abs(step)) < ftol) exit COUNT
+
+     xbest = xnew
+     fbest = fnew
+     dbest = dnew
+  end do COUNT
+
+  deallocate(xx, ff, xnew, fnew, Jac, C, d)
+
+contains
+  function DIST(ff)
+    real(long), dimension(:,:), intent(in) :: ff
+    real(long) :: DIST
+    DIST = maxval(abs(ff))
+  end function DIST
+end subroutine EXTPATH
