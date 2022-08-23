@@ -659,6 +659,7 @@
 		.image.main {
 			display: block;
 			margin: 2.5rem 0;
+			opacity: 1;
 			width: 100%;
 		}
 
