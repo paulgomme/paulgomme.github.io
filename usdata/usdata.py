@@ -94,13 +94,15 @@ from scipy.optimize import fsolve
 from statsmodels.tsa.filters.hp_filter import hpfilter
 import statsmodels.formula.api as sm
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 from cycler import cycler
 
 ### 2021-04-02: Get longer time series for the capital income tax rate (and
 ### so for after-tax returns), by copying the last observation for certain
-### housing income series. To get these longer series, set f_extend=TRUE.
-### Those who prefer to only use actual data should ensure f_extend=FALSE.
-f_extend = False
+### housing income series. To get these longer series, set f_extend=True.
+### Those who prefer to only use actual data should ensure f_extend=False.
+#f_extend = False
+f_extend = True
 
 ### "smoothing" controls the type of interpolation used for annual to
 ### quarterly conversions. Good choices include 'linear', 'cubic' and
@@ -109,14 +111,16 @@ smoothing = 'linear'
 
 pd.set_option('display.max_rows', None)
 
-plt.rcParams['axes.prop_cycle'] = cycler(color=['blue', 'black', 'red', '#005000', 'purple', 'darkred', 'chocolate', 'royalblue', 'navy', 'darkgreen', 'pink'])
-plt.rcParams['axes.spines.right'] = False
-plt.rcParams['axes.spines.top'] = False
-plt.rcParams['axes.xmargin'] = 0
-plt.rcParams['axes.ymargin'] = 0.01
-plt.rcParams["figure.figsize"] = (5.5,4)
-plt.rcParams['font.family'] = 'sans-serif'
-plt.rcParams['lines.linewidth'] = 3
+mpl.rcParams['axes.prop_cycle'] = cycler(color=['blue', 'black', 'red', '#005000', 'purple', 'darkred', 'chocolate', 'royalblue', 'navy', 'darkgreen', 'pink'])
+mpl.rcParams['axes.spines.right'] = False
+mpl.rcParams['axes.spines.top'] = False
+mpl.rcParams['axes.xmargin'] = 0
+mpl.rcParams['axes.ymargin'] = 0.01
+mpl.rcParams["figure.figsize"] = (20,12)
+mpl.rcParams['font.family'] = 'sans-serif'
+mpl.rcParams['font.size'] = 30
+#mpl.rcParams['lines.linewidth'] = 10
+mpl.rc('lines', linewidth=8)
 
 ### The annual data
 
@@ -165,6 +169,7 @@ annual_fred = [
     "DNDGRG3A086NBEA",	# Personal consumption expenditures: Nondurable goods (chain-type price index)
     "PCESVA",		# Personal Consumption Expenditures: Services (Bil.$)
     "DSERRG3A086NBEA",	# Personal Consumption Expenditures: Services (chain-type price index)
+    "LABSHPUSA156NRUG", # Labor share (Feenstra et al.)
     "K100071A027NBEA",	# Produced Assets Net Stock: Private Inventories (Bil.$)
     "K160421A027NBEA",	# Neutral Holding Gains or Losses[-]: Private Inventories (Bil.$)
     "K160471A027NBEA",	# Real Holding Gains or Losses[-]: Private Inventories (Bil.$)
@@ -314,6 +319,8 @@ quarter_fred = [
     "Y033RC1Q027SBEA",	# Private Nonresidential Fixed Investment: Equipment (SAAR, Bil.$)
     "PRFI",		# Private Residential Investment (SAAR,Bil.$)
     "PCDG",		# Personal Consumption Expenditures: Durable Goods (SAAR, Bil.$)
+    "PRS85006173",      # Labor share, non-farm business sector (2012=100)
+    "PRS84006173",      # Labor share, business sector (2012=100)
     "PRSCQ",		# Aggregate Hours: Nonfarm Payrolls, Private Sector (SAAR, Bil.Hrs)
     "A760RC1Q027SBEA",	# Government Gross Investment in Structures (SAAR, Bil.$)
     "Y054RC1Q027SBEA",	# Government Gross Investment in Equipment (SAAR, Bil.$)
@@ -746,7 +753,7 @@ def FIND_DELTA(delta_in):
         if iquarter > 3:
             if iyear+1 < len(acapital):
                 retval[iyear] = qcapital[t+1] - acapital[iyear+1]
-            iyear = iyear + 1
+            iyear = min(iyear + 1, len(acapital)-1)
             iquarter = iquarter - 4
 
     retval[-1] = delta[-1] - delta[-2]
@@ -765,7 +772,7 @@ for s in ['e', 's', 'h', 'd']:
     ans = fsolve(FIND_DELTA, guess)
 
     lastdate = quarter[my_investment].shift(1).last_valid_index().strftime('%Y-%m-%d')
-    quarter.loc['1947-01-01': lastdate, my_capital] = qcapital
+    quarter.loc['1947-01-01': lastdate, my_capital] = qcapital[:-1]
     annual.loc['1947-01-01':, my_delta] = ans
 
 ################################################################################
@@ -1328,10 +1335,35 @@ print(Solow_result.summary())
 fig, ax = plt.subplots()
 ax.plot(1-annual['alpha'])
 ax.set_title('US Labor Share of Income, ' + annual['alpha'].first_valid_index().strftime('%Y') + '-' + annual['alpha'].last_valid_index().strftime('%Y') + ' (mean = ' + str(round(1-alpha_mean, 3)) + ')')
-plt.axhline(y = 0.0, color = 'grey', linestyle = '-')
+#plt.axhline(y = 0.0, color = 'grey', linestyle = '-')
 fig.savefig('labor-share.pdf')
 fig.savefig('labor-share.png')
 fig.savefig('labor-share.jpeg')
+plt.close()
+
+fig, ax = plt.subplots()
+ax.plot(100*(1-annual['alpha'])/(1-annual['alpha']['2012-01-01']), label='Gomme-Rupert')
+ax.plot(100*annual['LABSHPUSA156NRUG']/annual['LABSHPUSA156NRUG']['2012-01-01'], label='Feenstra et al.')
+ax.plot(quarter['PRS85006173'], label='Non-farm business sector')
+ax.plot(quarter['PRS84006173'], label='Business sector')
+ax.set_title('US Labor Share of Income, 2012=10')
+#plt.axhline(y = 0.0, color = 'grey', linestyle = '-')
+ax.legend(frameon=False)
+fig.savefig('labor-share-index.pdf')
+fig.savefig('labor-share-index.png')
+fig.savefig('labor-share-index.jpeg')
+plt.close()
+
+
+fig, ax = plt.subplots()
+ax.plot(100-100*annual['alpha'], label='Gomme-Rupert')
+ax.plot(100*annual['LABSHPUSA156NRUG'], label='Feenstra et al.')
+ax.set_title('US Labor Share of Income')
+#plt.axhline(y = 0.0, color = 'grey', linestyle = '-')
+ax.legend(frameon=False)
+fig.savefig('labor-share-compared.pdf')
+fig.savefig('labor-share-compared.png')
+fig.savefig('labor-share-compared.jpeg')
 plt.close()
 
 my_title = 'Gomme, Ravikumar and Rupert (2011, Updated):\n'
@@ -1405,5 +1437,26 @@ ax.set_title(my_title + 'Real Returns on Capital (percent)')
 fig.savefig('after_tax_return_to_capital.png')
 fig.savefig('after_tax_return_to_capital.jpg')
 fig.savefig('after_tax_return_to_capital.pdf')
+plt.close()
+
+
+fig, ax = plt.subplots()
+ax.plot(quarter['tau_k'])
+ax.set_title(my_title + 'Capital Income Tax Rate (percent)')
+#plt.axhline(y = 0.0, color = 'grey', linestyle = '-')
+fig.savefig('tax_capital.png')
+fig.savefig('tax_capital.jpg')
+fig.savefig('tax_capital.pdf')
+plt.close()
+
+
+
+fig, ax = plt.subplots()
+ax.plot(quarter['tau_n'])
+ax.set_title(my_title + 'Labor Incomed Tax Rate (percent)')
+#plt.axhline(y = 0.0, color = 'grey', linestyle = '-')
+fig.savefig('tax_labar.png')
+fig.savefig('tax_labar.jpg')
+fig.savefig('tax_labar.pdf')
 plt.close()
 
