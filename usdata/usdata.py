@@ -764,7 +764,8 @@ for s in ['e', 's', 'h', 'd']:
     my_investment = 'real_x' + s
     my_capital = 'real_k' + s
 
-    acapital = copy.copy(annual.loc['1946-01-01':, my_capital]).dropna(inplace = False).to_numpy()
+    ### 2024-04-17: Capital data is in millions of dollars; NIPA data in billions.
+    acapital = copy.copy(annual.loc['1946-01-01':, my_capital]).dropna(inplace = False).to_numpy() / 1000
     investment = copy.copy(quarter.loc['1947-01-01':, my_investment]).dropna(inplace = False).to_numpy()
     qcapital = np.zeros(len(investment)+1)
     guess = 0.03 * np.ones(len(acapital))
