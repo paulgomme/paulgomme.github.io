@@ -101,8 +101,8 @@ from cycler import cycler
 ### so for after-tax returns), by copying the last observation for certain
 ### housing income series. To get these longer series, set f_extend=True.
 ### Those who prefer to only use actual data should ensure f_extend=False.
-#f_extend = False
-f_extend = True
+f_extend = False
+#f_extend = True
 
 ### "smoothing" controls the type of interpolation used for annual to
 ### quarterly conversions. Good choices include 'linear', 'cubic' and
@@ -677,7 +677,7 @@ quarter['real_cm'] = (quarter['PCE_nondurables'] + quarter['PCE_services'] - \
 ### interpolation instead.
 
 quarter['housing_net_operating_surplus'] = (annual['housing_net_operating_surplus'] / annual['gross_housing_value_added']).resample('QS').interpolate(method=smoothing) \
-    * quarter.loc['1947-01-01':'2020-01-01', 'gross_housing_value_added']
+    * quarter.loc['1947-01-01':annual['housing_net_operating_surplus'].last_valid_index(), 'gross_housing_value_added']
 quarter['housing_net_interest'] = (annual['housing_net_interest'] / annual['gross_housing_value_added']).resample('QS').interpolate(method=smoothing) \
     * quarter['gross_housing_value_added']
 quarter['housing_proprietors_income'] = (annual['housing_proprietors_income'] / annual['gross_housing_value_added']).resample('QS').interpolate(method=smoothing) \
@@ -1331,9 +1331,10 @@ Solow_result = sm.ols(formula = "log_solow_residual ~ trend + lag_log_solow_resi
                       data = quarter).fit()
 
 print(Solow_result.summary())
+print('SD of innovation:', Solow_result.scale**0.5)
 
 fig, ax = plt.subplots()
-ax.plot(1-annual['alpha'])
+ax.plot(1-annual['alpha'], clip_on = False)
 ax.set_title('US Labor Share of Income, ' + annual['alpha'].first_valid_index().strftime('%Y') + '-' + annual['alpha'].last_valid_index().strftime('%Y') + ' (mean = ' + str(round(1-alpha_mean, 3)) + ')')
 #plt.axhline(y = 0.0, color = 'grey', linestyle = '-')
 fig.savefig('labor-share.pdf')
@@ -1342,10 +1343,10 @@ fig.savefig('labor-share.jpeg')
 plt.close()
 
 fig, ax = plt.subplots()
-ax.plot(100*(1-annual['alpha'])/(1-annual['alpha']['2012-01-01']), label='Gomme-Rupert')
-ax.plot(100*annual['LABSHPUSA156NRUG']/annual['LABSHPUSA156NRUG']['2012-01-01'], label='Feenstra et al.')
-ax.plot(quarter['PRS85006173'], label='Non-farm business sector')
-ax.plot(quarter['PRS84006173'], label='Business sector')
+ax.plot(100*(1-annual['alpha'])/(1-annual['alpha']['2012-01-01']), label='Gomme-Rupert', clip_on = False)
+ax.plot(100*annual['LABSHPUSA156NRUG']/annual['LABSHPUSA156NRUG']['2012-01-01'], label='Feenstra et al.', clip_on = False)
+ax.plot(quarter['PRS85006173'], label='Non-farm business sector', clip_on = False)
+ax.plot(quarter['PRS84006173'], label='Business sector', clip_on = False)
 ax.set_title('US Labor Share of Income, 2012=10')
 #plt.axhline(y = 0.0, color = 'grey', linestyle = '-')
 ax.legend(frameon=False)
@@ -1356,8 +1357,8 @@ plt.close()
 
 
 fig, ax = plt.subplots()
-ax.plot(100-100*annual['alpha'], label='Gomme-Rupert')
-ax.plot(100*annual['LABSHPUSA156NRUG'], label='Feenstra et al.')
+ax.plot(100-100*annual['alpha'], label='Gomme-Rupert', clip_on = False)
+ax.plot(100*annual['LABSHPUSA156NRUG'], label='Feenstra et al.', clip_on = False)
 ax.set_title('US Labor Share of Income')
 #plt.axhline(y = 0.0, color = 'grey', linestyle = '-')
 ax.legend(frameon=False)
@@ -1369,10 +1370,10 @@ plt.close()
 my_title = 'Gomme, Ravikumar and Rupert (2011, Updated):\n'
 
 fig, ax = plt.subplots()
-ax.plot(quarter['return_business_capital_pre_tax_constant_gain'], label='Business (pre-tax)')
-ax.plot(quarter['return_all_capital_pre_tax_constant_gain'], label='All (pre-tax)')
-ax.plot(quarter['return_business_capital_after_tax_constant_gain'], label='Business (after-tax)')
-ax.plot(quarter['return_all_capital_after_tax_constant_gain'], label='All (after-tax)')
+ax.plot(quarter['return_business_capital_pre_tax_constant_gain'], label='Business (pre-tax)', clip_on = False)
+ax.plot(quarter['return_all_capital_pre_tax_constant_gain'], label='All (pre-tax)', clip_on = False)
+ax.plot(quarter['return_business_capital_after_tax_constant_gain'], label='Business (after-tax)', clip_on = False)
+ax.plot(quarter['return_all_capital_after_tax_constant_gain'], label='All (after-tax)', clip_on = False)
 ax.legend(frameon=False)
 ax.set_title(my_title + 'Real Returns on Capital (percent)')
 #plt.axhline(y = 0.0, color = 'grey', linestyle = '-')
@@ -1382,8 +1383,8 @@ fig.savefig('return_to_capital.pdf')
 plt.close()
 
 fig, ax = plt.subplots()
-ax.plot(quarter['return_business_capital_pre_tax_constant_gain'], label='Pre-tax')
-ax.plot(quarter['return_business_capital_after_tax_constant_gain'], label='After-tax')
+ax.plot(quarter['return_business_capital_pre_tax_constant_gain'], label='Pre-tax', clip_on = False)
+ax.plot(quarter['return_business_capital_after_tax_constant_gain'], label='After-tax', clip_on = False)
 ax.legend(frameon=False)
 ax.set_title(my_title + 'Real Returns on Business Capital (percent)')
 #plt.axhline(y = 0.0, color = 'grey', linestyle = '-')
@@ -1393,8 +1394,8 @@ fig.savefig('return_to_business_capital.pdf')
 plt.close()
 
 fig, ax = plt.subplots()
-ax.plot(quarter['return_all_capital_pre_tax_constant_gain'], label='Pre-tax')
-ax.plot(quarter['return_all_capital_after_tax_constant_gain'], label='`After-tax')
+ax.plot(quarter['return_all_capital_pre_tax_constant_gain'], label='Pre-tax', clip_on = False)
+ax.plot(quarter['return_all_capital_after_tax_constant_gain'], label='`After-tax', clip_on = False)
 ax.legend(frameon=False)
 ax.set_title(my_title + 'Real Returns on All Capital (percent)')
 #plt.axhline(y = 0.0, color = 'grey', linestyle = '-')
@@ -1404,8 +1405,8 @@ fig.savefig('return_to_all_capital.pdf')
 plt.close()
 
 fig, ax = plt.subplots()
-ax.plot(quarter['return_housing_capital_pre_tax_constant_gain'], label='All (pre-tax)')
-ax.plot(quarter['return_housing_capital_after_tax_constant_gain'], label='All (after-tax)')
+ax.plot(quarter['return_housing_capital_pre_tax_constant_gain'], label='All (pre-tax)', clip_on = False)
+ax.plot(quarter['return_housing_capital_after_tax_constant_gain'], label='All (after-tax)', clip_on = False)
 ax.legend(frameon=False)
 ax.set_title(my_title + 'Real Returns on Housing Capital (percent)')
 #plt.axhline(y = 0.0, color = 'grey', linestyle = '-')
@@ -1415,9 +1416,9 @@ fig.savefig('return_to_housing_capital.pdf')
 plt.close()
 
 fig, ax = plt.subplots()
-ax.plot(quarter['return_business_capital_pre_tax_constant_gain'], label='Business')
-ax.plot(quarter['return_all_capital_pre_tax_constant_gain'], label='All')
-ax.plot(quarter['return_housing_capital_pre_tax_constant_gain'], label='Housng')
+ax.plot(quarter['return_business_capital_pre_tax_constant_gain'], label='Business', clip_on = False)
+ax.plot(quarter['return_all_capital_pre_tax_constant_gain'], label='All', clip_on = False)
+ax.plot(quarter['return_housing_capital_pre_tax_constant_gain'], label='Housng', clip_on = False)
 ax.legend(frameon=False)
 ax.set_title(my_title + 'Real Returns on Capital (percent)')
 #plt.axhline(y = 0.0, color = 'grey', linestyle = '-')
@@ -1428,9 +1429,9 @@ plt.close()
 
 
 fig, ax = plt.subplots()
-ax.plot(quarter['return_business_capital_after_tax_constant_gain'], label='Business')
-ax.plot(quarter['return_all_capital_after_tax_constant_gain'], label='All')
-ax.plot(quarter['return_housing_capital_after_tax_constant_gain'], label='Housng')
+ax.plot(quarter['return_business_capital_after_tax_constant_gain'], label='Business', clip_on = False)
+ax.plot(quarter['return_all_capital_after_tax_constant_gain'], label='All', clip_on = False)
+ax.plot(quarter['return_housing_capital_after_tax_constant_gain'], label='Housng', clip_on = False)
 ax.legend(frameon=False)
 ax.set_title(my_title + 'Real Returns on Capital (percent)')
 #plt.axhline(y = 0.0, color = 'grey', linestyle = '-')
@@ -1441,7 +1442,7 @@ plt.close()
 
 
 fig, ax = plt.subplots()
-ax.plot(quarter['tau_k'])
+ax.plot(quarter['tau_k'], clip_on = False)
 ax.set_title(my_title + 'Capital Income Tax Rate (percent)')
 #plt.axhline(y = 0.0, color = 'grey', linestyle = '-')
 fig.savefig('tax_capital.png')
@@ -1452,11 +1453,11 @@ plt.close()
 
 
 fig, ax = plt.subplots()
-ax.plot(quarter['tau_n'])
+ax.plot(quarter['tau_n'], clip_on = False)
 ax.set_title(my_title + 'Labor Incomed Tax Rate (percent)')
 #plt.axhline(y = 0.0, color = 'grey', linestyle = '-')
-fig.savefig('tax_labar.png')
-fig.savefig('tax_labar.jpg')
-fig.savefig('tax_labar.pdf')
+fig.savefig('tax_labor.png')
+fig.savefig('tax_labor.jpg')
+fig.savefig('tax_labor.pdf')
 plt.close()
 
