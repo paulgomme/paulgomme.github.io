@@ -88,7 +88,8 @@ import pandas as pd
 import pandas_datareader as pdr
 import datetime
 import copy
-#import os
+from tabulate import tabulate
+import os
 import math
 from scipy.optimize import fsolve
 from statsmodels.tsa.filters.hp_filter import hpfilter
@@ -96,6 +97,7 @@ import statsmodels.formula.api as sm
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from cycler import cycler
+###import time
 
 ### 2021-04-02: Get longer time series for the capital income tax rate (and
 ### so for after-tax returns), by copying the last observation for certain
@@ -124,152 +126,85 @@ mpl.rc('lines', linewidth=8)
 
 ### The annual data
 
-annual_fred = [
-    "A2007C1A027NBEA",	# Housing Output (Bil.$)
-    "A2009C1A027NBEA",	# Gross Housing Value Added (Bil.$)
-    "B952RC1A027NBEA",	# Net Housing Value Added (Bil.$)
-    "B1033C1A027NBEA",	# Housing: Compensation of Employees (Bil.$)
-    "B1031C1A027NBEA",	# Housing: Taxes on Production and Imports (Bil.$)
-    "W154RC1A027NBEA",	# Housing Subsidies (Bil.$)
-    "W165RC1A027NBEA",	# Housing Net Operating Surplus (Bil.$)
-    "B1037C1A027NBEA",	# Housing: Net Interest (Bil.$)
-    "W166RC1A027NBEA",	# Housing Net Operating Surplus: Current Transfer Payments (Bil.$)
-    "B1034C1A027NBEA",	# Housing: Proprietors' Income with IVA & CCAdj (Bil.$)
-    "B1035C1A027NBEA",	# Housing: Rental Income of Persons w/CCadj (Bil.$)
-    "B1036C1A027NBEA",	# Housing: Corporate Profits w/IVA & CCadj (Bil.$)
-    "W153RC1A027NBEA",	# Housing Net Operating Surplus: Current Surplus of Govt Enterprises (Bil.$)
+annual_fred_map = {
+    'A2007C1A027NBEA':	'housing_output', # Housing Output (Bil.$)
+    'A2009C1A027NBEA':	'gross_housing_value_added', # Gross Housing Value Added (Bil.$)
+    'B952RC1A027NBEA':	'net_housing_value_added', # Net Housing Value Added (Bil.$)
+    'B1033C1A027NBEA':	'housing_compensation_of_employees', # Housing: Compensation of Employees (Bil.$)
+    'B1031C1A027NBEA':	'housing_taxes_on_production', # Housing: Taxes on Production and Imports (Bil.$)
+    'W154RC1A027NBEA':	'housing_subsidies', # Housing Subsidies (Bil.$)
+    'W165RC1A027NBEA':	'housing_net_operating_surplus', # Housing Net Operating Surplus (Bil.$)
+    'B1037C1A027NBEA':	'housing_net_interest', # Housing: Net Interest (Bil.$)
+    'W166RC1A027NBEA':	'housing_NOS_transfer_payments', # Housing Net Operating Surplus: Current Transfer Payments (Bil.$)
+    'B1034C1A027NBEA':	'housing_proprietors_income', # Housing: Proprietors' Income with IVA & CCAdj (Bil.$)
+    'B1035C1A027NBEA':	'housing_rental_income', # Housing: Rental Income of Persons w/CCadj (Bil.$)
+    'B1036C1A027NBEA':	'housing_corp_profits', # Housing: Corporate Profits w/IVA & CCadj (Bil.$)
+    'W153RC1A027NBEA':	'housing_NOS_gov_enterprises', # Housing Net Operating Surplus: Current Surplus of Govt Enterprises (Bil.$)
     ### See discussion preceeding calculation of quarter_tau_k
-    ###    "S230401A027NBEA",	# State/Local Govt: Other Taxes (Bil.$)
-    "B235RC1A027NBEA",	# Federal government current tax receipts: Taxes on production and imports: Customs duties
-    "B234RC1A027NBEA",	# Federal government current tax receipts: Taxes on production and imports: Excise taxes
-    "ASLSTAX", 		# State and Local Government: Taxes on production and imports: Sales Taxes
-    "A033RC1A027NBEA",	# National income: Compensation of employees
-    #"W209RC1A027NBEA",	# Compensation of Employees (Bil.$) <-- DISCONTINUED; use previous entry
-    "A553RC1A027NBEA",	# Government Wages and Salaries (Bil.$) *** DISCONTINUED; use next entry
-    "B202RC1A027NBEA",	# Government Wages and Salaries (Bil.$)
-    "A048RC1A027NBEA",	# Rental Income of Persons with CCAdj (Bil.$)
-    "A051RC1A027NBEA",	# Corporate Profits with IVA and CCAdj (Bil.$)
-    "W255RC1A027NBEA",	# Net Interest and Miscellaneous Payments (Bil.$)
-    ###"B1035C1A027NBEA",	# Housing: Rental Income of Persons w/CCadj (Bil.$) -- duplicate
-    ###"B1036C1A027NBEA",	# Housing: Corporate Profits w/IVA & CCadj (Bil.$) --duplicate
-    ###"B1037C1A027NBEA",	# Housing: Net Interest (Bil.$) -- duplicate
-    "GNPA",		# Gross National Product (Bil.$)
-    "GDPA",		# Gross Domestic Product (Bil.$)
-    "A765RC1A027NBEA",	# Gross Value Added: General Government (Bil.$)
-    "A027RC1A027NBEA",	# Net National Product (Bil.$)
-    "A194RC1A027NBEA",	# General Government: Net Domestic Product (Bil.$)
-    "K1NTOTL1EQ000",	# Net Stock: Private Fixed Nonresidential Equipment (Bil.$)
-    "K1NTOTL1ST000",	# Net Stock: Private Fixed Nonresidential Structures (Bil.$)
-    "K1R53101ES000",	# Net Stock: Private Residential Fixed Assets (Bil.$)
-    "K1CTOTL1CD000",	# Net Stock: Consumer Durable Goods (Bil.$)
-    "K1GTOTL1EQ000",	# Net Stock: Government Nonresidential Equipment (Bil.$)
-    "K1GTOTL1STNR0",	# Net Stock: Govt Nonresidential Structures (Bil.$)
-    "K1GTOTL1SA000",	# Net Stock: Government Residential Fixed Assets (Bil.$)
-    "PCNDA", 		# Personal Consumption Expenditures: Nondurable Goods (Bil.$)
-    "DNDGRG3A086NBEA",	# Personal consumption expenditures: Nondurable goods (chain-type price index)
-    "PCESVA",		# Personal Consumption Expenditures: Services (Bil.$)
-    "DSERRG3A086NBEA",	# Personal Consumption Expenditures: Services (chain-type price index)
-    "LABSHPUSA156NRUG", # Labor share (Feenstra et al.)
-    "K100071A027NBEA",	# Produced Assets Net Stock: Private Inventories (Bil.$)
-    "K160421A027NBEA",	# Neutral Holding Gains or Losses[-]: Private Inventories (Bil.$)
-    "K160471A027NBEA",	# Real Holding Gains or Losses[-]: Private Inventories (Bil.$)
-    "M1NTOTL1EQ000",	# Depreciation: Pvt Nonres Fxd Assets: Equip (Bil.$)
-    "M1NTOTL1ST000",	# Depreciation: Pvt Nonres Fxd Assets: Struct (Bil.$)
-    "M1R53101ES000",	# Depreciation: Res Fixed Assets: Private (Bil.$)
-    "M1GTOTL1EQ000",	# Depreciation: Gov Nonres Fixed Assets: Equipment (Bil.$)
-    "M1GTOTL1STNR0",	# Depreciation: Gov Nonresidential Fixed Assets: Structures (Bil.$)
-    "M1GTOTL1SA000",	# Depreciation: Res Fixed Assets: Government (Bil.$)
-    "M1CTOTL1CD000",	# Depreciation: Consumer Durable Goods (Bil.$)
-    "A553RC1A027NBEA",	# Government Wages and Salaries (Bil.$) # duplicate??
-    "A955RC1A027NBEA",	# Government consumption expenditures
-    "B009RC1A027NBEA",	# Private Nonresidential Investment: Structures (Bil.$)
-    "Y033RC1A027NBEA",	# Private Nonresidential Fixed Investment: Equipment (Bil.$)
-    "S210401A027NBEA",	# Personal current taxes: State and local: Property taxes
-    "ASLPTAX",		# State and Local Government: Taxes on production and imports: Property Taxes
-    "W837RC1A027NBEA",	# Local government current tax receipts: Taxes on production and imports: Property taxes
-    "W737RC1A027NBEA",	# State government current tax receipts: Taxes on production and imports: Property taxes
-    "PRFIA",		# Private Residential Investment (Bil.$)
-    "PCDGA",		# Personal Consumption Expenditures: Durable Goods (Bil.$)
-    "PNFIA",		# Private Nonresidential Fixed Investment (Bil.$)
-    "B008RG3A086NBEA",	# Real private fixed investment: Nonresidential (chain-type price index) (2009=100)
-    "PNFICA" 		# Real Private Nonresidential Fixed Investment (Bil.Chn.2009$)
-    ]
+    ###    'S230401A027NBEA', # State/Local Govt: Other Taxes (Bil.$)
+    'B235RC1A027NBEA':	'gov_custom_duties', # Federal government current tax receipts: Taxes on production and imports: Customs duties
+    'B234RC1A027NBEA':	'gov_excise_taxes', # Federal government current tax receipts: Taxes on production and imports: Excise taxes
+    'ASLSTAX':	'state_local_sales_taxes', # State and Local Government: Taxes on production and imports: Sales Taxes
+    'A033RC1A027NBEA':	'compensation_of_employees', # National income: Compensation of employees
+    #'W209RC1A027NBEA', # Compensation of Employees (Bil.$) <-- DISCONTINUED; use previous entry
+    #'A553RC1A027NBEA', # Government Wages and Salaries (Bil.$) *** DISCONTINUED; use next entry
+    'B202RC1A027NBEA':	'gov_wages_and_salaries', # Government Wages and Salaries (Bil.$)
+    'A048RC1A027NBEA':	'rental_income', # Rental Income of Persons with CCAdj (Bil.$)
+    'A051RC1A027NBEA':	'corporate_profits', # Corporate Profits with IVA and CCAdj (Bil.$)
+    'W255RC1A027NBEA':	'net_interest', # Net Interest and Miscellaneous Payments (Bil.$)
+    ###'B1035C1A027NBEA', # Housing: Rental Income of Persons w/CCadj (Bil.$) -- duplicate
+    ###'B1036C1A027NBEA', # Housing: Corporate Profits w/IVA & CCadj (Bil.$) --duplicate
+    ###'B1037C1A027NBEA', # Housing: Net Interest (Bil.$) -- duplicate
+    'GNPA':		'GNP', # Gross National Product (Bil.$)
+    'GDPA':		'GDP', # Gross Domestic Product (Bil.$)
+    'A765RC1A027NBEA':	'gross_value_added_gov', # Gross Value Added: General Government (Bil.$)
+    'A027RC1A027NBEA':	'net_national_product', # Net National Product (Bil.$)
+    'A194RC1A027NBEA':	'gov_net_national_product', # General Government: Net Domestic Product (Bil.$)
+    'K1NTOTL1EQ000':	'net_stock_private_equipment_software', # Net Stock: Private Fixed Nonresidential Equipment (Mil.$)
+    'K1NTOTL1ST000':	'net_stock_private_nonresidential_structures', # Net Stock: Private Fixed Nonresidential Structures (Mil.$)
+    'K1R53101ES000':	'net_stock_private_residential_structures', # Net Stock: Private Residential Fixed Assets (Mil.$)
+    'K1CTOTL1CD000':	'net_stock_consumer_durables', # Net Stock: Consumer Durable Goods (Mil.$)
+    'K1GTOTL1EQ000':	'net_stock_gov_nonresidential_equipment_software', # Net Stock: Government Nonresidential Equipment (Mil.$)
+    'K1GTOTL1STNR0':	'net_stock_gov_nonresidential_structures', # Net Stock: Govt Nonresidential Structures (Mil.$)
+    'K1GTOTL1SA000':	'net_stock_gov_residential_structures', # Net Stock: Government Residential Fixed Assets (Mil.$)
+    'PCNDA':		'PCE_nondurables', # Personal Consumption Expenditures: Nondurable Goods (Bil.$)
+    'DNDGRG3A086NBEA':	'DNDGRG3A086NBEA', # Personal consumption expenditures: Nondurable goods (chain-type price index)
+    'PCESVA':		'PCE_services', # Personal Consumption Expenditures: Services (Bil.$)
+    'DSERRG3A086NBEA':	'DSERRG3A086NBEA', # Personal Consumption Expenditures: Services (chain-type price index)
+    'LABSHPUSA156NRUG':	'LABSHPUSA156NRUG', # Labor share (Feenstra et al.)
+    'K100071A027NBEA':	'private_inventories', # Produced Assets Net Stock: Private Inventories (Bil.$)
+    'K160421A027NBEA':	'private_inventories_neutral_holding_gains_losses', # Neutral Holding Gains or Losses[-]: Private Inventories (Bil.$)
+    'K160471A027NBEA':	'private_inventores_real_holding_gains_losses', # Real Holding Gains or Losses[-]: Private Inventories (Bil.$)
+    'M1NTOTL1EQ000':	'depreciation_private_equipment_software', # Depreciation: Pvt Nonres Fxd Assets: Equip (Bil.$)
+    'M1NTOTL1ST000':	'depreciation_private_nonresidential_structures', # Depreciation: Pvt Nonres Fxd Assets: Struct (Bil.$)
+    'M1R53101ES000':	'depreciation_private_residential_structures', # Depreciation: Res Fixed Assets: Private (Bil.$)
+    'M1GTOTL1EQ000':	'depreciation_gov_equipment_software', # Depreciation: Gov Nonres Fixed Assets: Equipment (Bil.$)
+    'M1GTOTL1STNR0':	'depreciation_gov_nonresidential_structures', # Depreciation: Gov Nonresidential Fixed Assets: Structures (Bil.$)
+    'M1GTOTL1SA000':	'depreciation_gov_residential_structures', # Depreciation: Res Fixed Assets: Government (Bil.$)
+    'M1CTOTL1CD000':	'depreciation_consumer_durables', # Depreciation: Consumer Durable Goods (Bil.$)
+    #'A553RC1A027NBEA', # Government Wages and Salaries (Bil.$) # duplicate??
+    'A955RC1A027NBEA':	'gov_consumption_expenditures', # Government consumption expenditures# Government consumption expenditures
+    'B009RC1A027NBEA':	'private_investment_nonresidential_structures', # Private Nonresidential Investment: Structures (Bil.$)# Private Nonresidential Investment: Structures (Bil.$)
+    'Y033RC1A027NBEA':	'private_investment_equipment_software', # Private Nonresidential Fixed Investment: Equipment (Bil.$)# Private Nonresidential Fixed Investment: Equipment (Bil.$)
+    'S210401A027NBEA':	'state_local_property_taxes', # Personal current taxes: State and local: Property taxes# Personal current taxes: State and local: Property taxes
+    'ASLPTAX':		'state_local_gov_property_taxes', # State and Local Government: Taxes on production and imports: Property Taxes# State and Local Government: Taxes on production and imports: Property Taxes
+    'W837RC1A027NBEA':	'W837RC1A027NBEA', # Local government current tax receipts: Taxes on production and imports: Property taxes# Local government current tax receipts: Taxes on production and imports: Property taxes
+    'W737RC1A027NBEA':	'W737RC1A027NBEA', # State government current tax receipts: Taxes on production and imports: Property taxes
+    'PRFIA':		'private_investment_residential_structures', # Private Residential Investment (Bil.$)
+    'PCDGA':		'PCE_durables', # Personal Consumption Expenditures: Durable Goods (Bil.$)
+    'PNFIA':		'private_nonresidential_fixed_investment', # Private Nonresidential Fixed Investment (Bil.$)
+    'B008RG3A086NBEA':	'deflator_investment', # Real private fixed investment: Nonresidential (chain-type price index) (2009=100)
+    'PNFICA':		'real_private_nonresidential_fixed_investment',	 # Real Private Nonresidential Fixed Investment (Bil.Chn.2009$)
+    }
 
 ## Once FRED is up again, look at the "Taxes on production and imports:
 ## Property taxes" series. It appears that the sum (state and local) has been
 ## discontinued (at both quarterly and annual frequency), but constituent
 ## parts are available (at least annually).
 
-annual = pdr.DataReader(annual_fred, 'fred', datetime.datetime(1900,1,1))
-
-annual.rename(columns={
-    'A2007C1A027NBEA': 'housing_output',
-    'A2009C1A027NBEA': 'gross_housing_value_added',
-    'B952RC1A027NBEA': 'net_housing_value_added',
-    'B1033C1A027NBEA': 'housing_compensation_of_employees',
-    'B1031C1A027NBEA': 'housing_taxes_on_production',
-    'W154RC1A027NBEA': 'housing_subsidies',
-    'W165RC1A027NBEA': 'housing_net_operating_surplus',
-    'B1037C1A027NBEA': 'housing_net_interest',
-    'W166RC1A027NBEA': 'housing_NOS_transfer_payments',
-    'B1034C1A027NBEA': 'housing_proprietors_income',
-    'B1035C1A027NBEA': 'housing_rental_income',
-    'B1036C1A027NBEA': 'housing_corp_profits',
-    'W153RC1A027NBEA': 'housing_NOS_gov_enterprises',
-    ### 2019-07-03 See discussion preceeding quarter_tau_k
-    ###state_local_gov_other_taxes <- S230401A027NBEA
-    'ASLPTAX': 'state_local_gov_property_taxes',
-    ### 2021-04-01
-    ########'W837RC1A027NBEA + W737RC1A027NBEA': 'state_local_gov_property_taxes_new',
-    'S210401A027NBEA': 'state_local_property_taxes',
-    'ASLSTAX': 'state_local_sales_taxes',
-    'B234RC1A027NBEA': 'gov_excise_taxes',
-    'B235RC1A027NBEA': 'gov_custom_duties',
-    #compensation_of_employees <- W209RC1A027NBEA
-    'A033RC1A027NBEA': 'compensation_of_employees',
-    #gov_wages_and_salaries <- A553RC1A027NBEA
-    'B202RC1A027NBEA': 'gov_wages_and_salaries',
-    'A048RC1A027NBEA': 'rental_income',
-    'A051RC1A027NBEA': 'corporate_profits',
-    'W255RC1A027NBEA': 'net_interest',
-    ###'B1035C1A027NBEA': 'housing_rental_income',
-    ###'B1036C1A027NBEA': 'housing_corp_profits',
-    ###'B1037C1A027NBEA': 'housing_net_interest',
-    'GNPA': 'GNP',
-    'GDPA': 'GDP',
-    'A765RC1A027NBEA': 'gross_value_added_gov',
-    'A027RC1A027NBEA': 'net_national_product',
-    'A194RC1A027NBEA': 'gov_net_national_product',
-    'K1NTOTL1EQ000': 'net_stock_private_equipment_software',
-    'K1NTOTL1ST000': 'net_stock_private_nonresidential_structures',
-    'K1R53101ES000': 'net_stock_private_residential_structures',
-    'K1CTOTL1CD000': 'net_stock_consumer_durables',
-    'K1GTOTL1EQ000': 'net_stock_gov_nonresidential_equipment_software',
-    'K1GTOTL1STNR0': 'net_stock_gov_nonresidential_structures',
-    'K1GTOTL1SA000': 'net_stock_gov_residential_structures',
-    #'PCNDA': 'real_PCE_nondurables',
-    #'PCESVA': 'real_PCE_services',
-    'PCNDA': 'PCE_nondurables',
-    'PCESVA': 'PCE_services',
-    'K100071A027NBEA': 'private_inventories',
-    'K160421A027NBEA': 'private_inventories_neutral_holding_gains_losses',
-    'K160471A027NBEA': 'private_inventores_real_holding_gains_losses',
-    'M1NTOTL1EQ000': 'depreciation_private_equipment_software',
-    'M1NTOTL1ST000': 'depreciation_private_nonresidential_structures',
-    'M1R53101ES000': 'depreciation_private_residential_structures',
-    'M1GTOTL1EQ000': 'depreciation_gov_equipment_software',
-    'M1GTOTL1STNR0': 'depreciation_gov_nonresidential_structures',
-    'M1GTOTL1SA000': 'depreciation_gov_residential_structures',
-    'M1CTOTL1CD000': 'depreciation_consumer_durables',
-    'B009RC1A027NBEA': 'private_investment_nonresidential_structures',
-    'Y033RC1A027NBEA': 'private_investment_equipment_software',
-    'PRFIA': 'private_investment_residential_structures',
-    'PCDGA': 'PCE_durables',
-    'PNFIA': 'private_nonresidential_fixed_investment',
-    'PNFICA': 'real_private_nonresidential_fixed_investment',
-    'B008RG3A086NBEA': 'deflator_investment',
-    'A955RC1A027NBEA': 'gov_consumption_expenditures'
-}, inplace = True)
+annual = pdr.DataReader(list(annual_fred_map.keys()), 'fred', datetime.datetime(1900,1,1), api_key=os.getenv('FRED_API_KEY'))
+annual.rename(columns=annual_fred_map, inplace = True)
+annual = annual.asfreq('YS') # 2024-10-11
 
 annual['real_PCE_nondurables'] = annual['PCE_nondurables'] * 100 / annual['DNDGRG3A086NBEA']
 annual['real_PCE_services'] = annual['PCE_services'] * 100 / annual['DSERRG3A086NBEA']
@@ -279,101 +214,61 @@ annual['state_local_gov_property_taxes_new'] = annual['W837RC1A027NBEA'] + annua
 
 ### The quarterly data
 
-quarter_fred = [
-    "W055RC1Q027SBEA",	# Personal Current Taxes (SAAR, Bil.$)
-    "W025RC1Q027SBEA",	# Government Tax Receipts on Corporate Income (SAAR, Bil.$)
-    "B249RC1Q027SBEA",	# State & Local Government Property Tax Receipts (SAAR, Bil.$)
-    "S210400",		# State & Local Property Taxes (SAAR, Mil.$)
-    "B248RC1Q027SBEA",	# State & Local Sales Taxes
-    "B234RC1Q027SBEA",	# Federal Government Excise Taxes
-    "B235RC1Q027SBEA",	# Federal Government Custom Duties
-    "GDICOMP",		# Compensation of Employees, Paid: Domestic Employers (SAAR, Bil.$)
-    "A576RC1Q027SBEA",	# Wages & Salaries (SAAR, Bil.$) *** DISCONTINUED - use WASCUR
-    "WASCUR",		# Wages & Salaries (SAAR, Bil.$)
-    "W272RC1Q027SBEA",	# Net Interest & Miscellaneous Payments: Domestic Industries (SAAR, Bil.$)
-    "PROPINC",		# Proprietors' Income with IVA and CCAdj (SAAR, Bil.$)
-    "RENTIN",		# Rental Income of Persons with CCAdj (SAAR, Bil.$)
-    "A445RC1Q027SBEA",	# Corporate Profits with IVA & CCAdj: Domestic Industries (SAAR, Bil.$)
-    "B029RC1Q027SBEA",	# Business Current Transfer Payments (SAAR, Bil.$)
-    "W260RC1Q027SBEA",	# Net Operating Surplus: Private Enterprises (SAAR, Bil.$)
-    "B039RC1Q027SBEA",	# Employer Contributions for Government Social Insurance (SAAR, Bil.$)
-    "A061RC1Q027SBEA",	# Contributions for Government Social Insurance (SAAR, Bil.$)
-    "A024RC1Q027SBEA",	# Consumption of Private Fixed Capital (SAAR, Bil.$)
-    "W276RC1Q027SBEA",	# Consumption of Fixed Capital: Domestic Business (Bil.$)
-    "CBI",		# Change in Private Inventories (SAAR, Bil.$)
-    "A2009C1Q027SBEA",	# Gross Housing Value Added (SAAR, Bil.$)
-    #    "A024RC1Q027SBEA", 	# Consumption of fixed capital: Private
-    "B2607C1Q027SBEA",	# Consumption of fixed capital: Private: Households and institutions: Owner-occupied housing
-    "USRECQ",		# Quarterly NBER Recession/Expansion: Recession Shading (+1/-1)
-    "PCND",		# Personal Consumption Expenditures: Nondurable Goods (SAAR, Bil.$)
-    "DNDGRG3Q086SBEA",	# Personal consumption expenditures: Nondurable goods (chain-type price index), 2009-100
-    "PCESV",		# Personal Consumption Expenditures: Services (SAAR, Bil.$)
-    "DSERRG3Q086SBEA",	# Personal consumption expenditures: Services (chain-type price index), 2009=100
-    "GDP",		# Gross Domestic Product (SAAR, Bil.$)
-    "DHUTRC1Q027SBEA",	# 	PCE: Housing Services and utilities (starts 1959I)
-    "A553RC1Q027SBEA",	# Government Wages and Salaries (SAAR, Bil.$) *** DISCONTINUED; use next entry?
-    "B202RC1Q027SBEA",	# Government Wages and Salaries (Bil.$)
-    "A955RC1Q027SBEA",	# Government consumption expenditures
-    #    "DHSGRC1A027NBEA",	# (only annual data)	Personal Consumption Expenditures: Housing (SAAR, Mil.$)
-    "B009RC1Q027SBEA",	# Private Nonresidential Investment: Structures (SAAR, Bil.$)
-    "Y033RC1Q027SBEA",	# Private Nonresidential Fixed Investment: Equipment (SAAR, Bil.$)
-    "PRFI",		# Private Residential Investment (SAAR,Bil.$)
-    "PCDG",		# Personal Consumption Expenditures: Durable Goods (SAAR, Bil.$)
-    "PRS85006173",      # Labor share, non-farm business sector (2012=100)
-    "PRS84006173",      # Labor share, business sector (2012=100)
-    "PRSCQ",		# Aggregate Hours: Nonfarm Payrolls, Private Sector (SAAR, Bil.Hrs)
-    "A760RC1Q027SBEA",	# Government Gross Investment in Structures (SAAR, Bil.$)
-    "Y054RC1Q027SBEA",	# Government Gross Investment in Equipment (SAAR, Bil.$)
-    "PNFI",		# Private Nonresidential Fixed Investment
-    "B008RG3Q086SBEA",	# Real private fixed investment: Nonresidential (chain-type price index), 2009=100
-    "A371RC1Q027SBEA"	# (since 1996; splice in previous Haver data?)	Private Inventories (EOP, SAQT, Bil.$)
-    ]
+quarter_fred_map = {
+    'W055RC1Q027SBEA':	'personal_taxes', # Personal Current Taxes (SAAR, Bil.$)
+    'W025RC1Q027SBEA':	'gov_taxes_corp_income', # Government Tax Receipts on Corporate Income (SAAR, Bil.$)
+    'B249RC1Q027SBEA':	'state_local_gov_property_taxes', # State & Local Government Property Tax Receipts (SAAR, Bil.$)
+    'S210400':		'state_local_property_taxes', # State & Local Property Taxes (SAAR, Mil.$)
+    'B248RC1Q027SBEA':	'state_local_sales_taxes', # State & Local Sales Taxes
+    'B234RC1Q027SBEA':	'gov_excise_taxes', # Federal Government Excise Taxes
+    'B235RC1Q027SBEA':	'gov_custom_duties', # Federal Government Custom Duties
+    'GDICOMP':		'compensation_of_employees', # Compensation of Employees, Paid: Domestic Employers (SAAR, Bil.$)
+    #'A576RC1Q027SBEA', # Wages & Salaries (SAAR, Bil.$) *** DISCONTINUED - use WASCUR
+    'WASCUR':		'wage_salary_accruals', # 2019-03-02# Wages & Salaries (SAAR, Bil.$)
+    'W272RC1Q027SBEA':	'net_interest', # Net Interest & Miscellaneous Payments: Domestic Industries (SAAR, Bil.$)
+    'PROPINC':		'proprietors_income', # Proprietors' Income with IVA and CCAdj (SAAR, Bil.$)
+    'RENTIN':		'rental_income', # Rental Income of Persons with CCAdj (SAAR, Bil.$)
+    'A445RC1Q027SBEA':	'corp_profits', # Corporate Profits with IVA & CCAdj: Domestic Industries (SAAR, Bil.$)
+    'B029RC1Q027SBEA':	'business_transfer_payments', # Business Current Transfer Payments (SAAR, Bil.$)
+    'W260RC1Q027SBEA':	'net_operating_surplus_private', # Net Operating Surplus: Private Enterprises (SAAR, Bil.$)
+    'B039RC1Q027SBEA':	'employer_contributions_gov_social_insurance', # Employer Contributions for Government Social Insurance (SAAR, Bil.$)
+    'A061RC1Q027SBEA':	'contributions_gov_social_insurance', # Contributions for Government Social Insurance (SAAR, Bil.$)
+    'A024RC1Q027SBEA':	'private_capital_consumption', # Consumption of Private Fixed Capital (SAAR, Bil.$)
+    'W276RC1Q027SBEA':	'consumption_fixed_capital_business', # Consumption of Fixed Capital: Domestic Business (Bil.$)
+    'CBI':		'change_private_inventories', # Change in Private Inventories (SAAR, Bil.$)
+    'A2009C1Q027SBEA':	'gross_housing_value_added', # Gross Housing Value Added (SAAR, Bil.$)
+    #    'A024RC1Q027SBEA', # Consumption of fixed capital: Private
+    'B2607C1Q027SBEA':	'private_capital_consumption_housing', # Consumption of fixed capital: Private: Households and institutions: Owner-occupied housing
+    'USRECQ':		'NBER', # Quarterly NBER Recession/Expansion: Recession Shading (+1/-1)
+    'PCND':		'PCE_nondurables', # Personal Consumption Expenditures: Nondurable Goods (SAAR, Bil.$)
+    'DNDGRG3Q086SBEA':	'PCE_nondurables_price', # Personal consumption expenditures: Nondurable goods (chain-type price index), 2009-100
+    'PCESV':		'PCE_services', # Personal Consumption Expenditures: Services (SAAR, Bil.$)
+    'DSERRG3Q086SBEA':	'PCE_services_price', # Personal consumption expenditures: Services (chain-type price index), 2009=100
+    'GDP':		'GDP', # Gross Domestic Product (SAAR, Bil.$)
+    'DHUTRC1Q027SBEA':	'PCE_housing_services', # 	PCE: Housing Services and utilities (starts 1959I)
+    #'A553RC1Q027SBEA', # Government Wages and Salaries (SAAR, Bil.$) *** DISCONTINUED; use next entry?
+    'B202RC1Q027SBEA':	'gov_wages_and_salaries', # 2018-03-02# Government Wages and Salaries (Bil.$)
+    'A955RC1Q027SBEA':	'gov_consumption_expenditures', # Government consumption expenditures
+    #    'DHSGRC1A027NBEA', # (only annual data)	Personal Consumption Expenditures: Housing (SAAR, Mil.$)
+    'B009RC1Q027SBEA':	'private_investment_nonresidential_structures', # Private Nonresidential Investment: Structures (SAAR, Bil.$)
+    'Y033RC1Q027SBEA':	'private_investment_equipment_software', # Private Nonresidential Fixed Investment: Equipment (SAAR, Bil.$)
+    'PRFI':		'private_investment_residential_structures', # Private Residential Investment (SAAR,Bil.$)
+    'PCDG':		'PCE_durables', # Personal Consumption Expenditures: Durable Goods (SAAR, Bil.$)
+    'PRS85006173':	'labor share non-farm business',      # Labor share, non-farm business sector (2012=100)
+    'PRS84006173':	'labor share business',      # Labor share, business sector (2012=100)
+    'PRSCQ':		'hours_private_nonfarm', # Aggregate Hours: Nonfarm Payrolls, Private Sector (SAAR, Bil.Hrs) *** Discontinued
+    'A760RC1Q027SBEA':	'gov_gross_investment_structures', # Government Gross Investment in Structures (SAAR, Bil.$)
+    'Y054RC1Q027SBEA':	'gov_gross_investment_equipment_software', # Government Gross Investment in Equipment (SAAR, Bil.$)
+    'PNFI':		'private_nonresidential_fixed_investment', # Private Nonresidential Fixed Investment
+    'B008RG3Q086SBEA':	'real_private_nonresidential_fixed_investment_price', # Real private fixed investment: Nonresidential (chain-type price index), 2009=100
+    'A371RC1Q027SBEA':	'private_inventories', # (since 1996; splice in previous Haver data?)	Private Inventories (EOP, SAQT, Bil.$)
+    'HOABS':		'hours-business', # Business Sector: Hours worked for all workers
+    'HOANBS':		'hours-nonfarm business', # Nonfarm Business Sector: Hours worked for all workers
+    }
 
-quarter = pdr.DataReader(quarter_fred, 'fred', datetime.datetime(1900,1,1))
-
-quarter.rename(columns={
-    'W055RC1Q027SBEA': 'personal_taxes',
-    'W025RC1Q027SBEA': 'gov_taxes_corp_income',
-    'B249RC1Q027SBEA': 'state_local_gov_property_taxes',
-    'S210400': 'state_local_property_taxes',
-    'B248RC1Q027SBEA': 'state_local_sales_taxes',
-    'B234RC1Q027SBEA': 'gov_excise_taxes',
-    'B235RC1Q027SBEA': 'gov_custom_duties',
-    'GDICOMP': 'compensation_of_employees',
-    'WASCUR': 'wage_salary_accruals', # 2019-03-02
-    'W272RC1Q027SBEA': 'net_interest',
-    'PROPINC': 'proprietors_income',
-    'RENTIN': 'rental_income',
-    'A445RC1Q027SBEA': 'corp_profits',
-    'B029RC1Q027SBEA': 'business_transfer_payments',
-    'W260RC1Q027SBEA': 'net_operating_surplus_private',
-    'B039RC1Q027SBEA': 'employer_contributions_gov_social_insurance',
-    'A061RC1Q027SBEA': 'contributions_gov_social_insurance',
-    'W276RC1Q027SBEA': 'consumption_fixed_capital_business',
-    'CBI': 'change_private_inventories',
-    'A2009C1Q027SBEA': 'gross_housing_value_added',
-    'USRECQ': 'NBER',
-    'PCND': 'PCE_nondurables',
-    'DNDGRG3Q086SBEA': 'PCE_nondurables_price',
-    'PCESV': 'PCE_services',
-    'DSERRG3Q086SBEA': 'PCE_services_price',
-    ###'GDP': 'GDP',
-    'DHUTRC1Q027SBEA': 'PCE_housing_services',
-    'B202RC1Q027SBEA': 'gov_wages_and_salaries', # 2018-03-02
-    'A955RC1Q027SBEA': 'gov_consumption_expenditures',
-    'B009RC1Q027SBEA': 'private_investment_nonresidential_structures',
-    'Y033RC1Q027SBEA': 'private_investment_equipment_software',
-    'PRFI': 'private_investment_residential_structures',
-    'PCDG': 'PCE_durables',
-    'PRSCQ': 'hours_private_nonfarm',
-    'A760RC1Q027SBEA': 'gov_gross_investment_structures',
-    'Y054RC1Q027SBEA': 'gov_gross_investment_equipment_software',
-    'PNFI': 'private_nonresidential_fixed_investment',
-    'B008RG3Q086SBEA': 'real_private_nonresidential_fixed_investment_price',
-    'A371RC1Q027SBEA': 'private_inventories',
-    'A024RC1Q027SBEA': 'private_capital_consumption',
-    'B2607C1Q027SBEA': 'private_capital_consumption_housing',
-}, inplace = True)
+quarter = pdr.DataReader(list(quarter_fred_map.keys()), 'fred', datetime.datetime(1900,1,1), api_key=os.getenv('FRED_API_KEY'))
+quarter.rename(columns=quarter_fred_map, inplace = True)
+quarter = quarter.asfreq('QS') # 2024-10-11
 
 quarter['real_PCE_nondurables'] = 100 * quarter['PCE_nondurables'] / quarter['PCE_nondurables_price']
 quarter['real_PCE_services'] = 100 * quarter['PCE_services'] / quarter['PCE_services_price']
@@ -382,7 +277,7 @@ month_fred = ["CPIAUCSL",	# CPI-U: All Items (SA, 1982-84=100) (monthly)
               "CNP16OV"	# Civilian Noninstitutional Population: 16 Years and Over (NSA, Thous) (monthly)
               ]
 
-month = pdr.DataReader(month_fred, 'fred', datetime.datetime(1900,1,1))
+month = pdr.DataReader(month_fred, 'fred', datetime.datetime(1900,1,1), api_key=os.getenv('FRED_API_KEY'))
 
 ### Q means convert to quarterly
 ### S means use start of period
@@ -470,10 +365,15 @@ annual['delta_all'] = (annual['depreciation_private_equipment_software'] \
 ### Index for Korean war
 tKW = '1954-01-01'
 
-#Average depreciation rates since Korean War (expressed quarterly)
+#Average depreciation rates since Korean War
 delta_all_annual = annual['delta_all'].loc[tKW:].mean()
 delta_market_annual = annual['delta_market'].loc[tKW:].mean()
+delta_market_equipment_annual = annual['delta_ke'].loc[tKW:].mean()
+delta_market_structures_annual = annual['delta_ks'].loc[tKW:].mean()
 delta_home_annual = annual['delta_home'].loc[tKW:].mean()
+delta_home_structures_annual = annual['delta_kh'].loc[tKW:].mean()
+delta_home_durables_annual = annual['delta_kd'].loc[tKW:].mean()
+#Average depreciation rates since Korean War (expressed quarterly)
 delta_all = 1 - (1 - annual['delta_all'].loc[tKW:].mean())**(.25)
 delta_market = 1 - (1 - annual['delta_market'].loc[tKW:].mean())**(.25)
 delta_home = 1 - (1 - annual['delta_home'].loc[tKW:].mean())**(.25)
@@ -513,8 +413,29 @@ annual['xm_y'] = (annual['private_investment_nonresidential_structures'] \
 annual['xh_y'] = (annual['private_investment_residential_structures'] \
 	          + annual['PCE_durables']) / annual['GDP']
 
+x_y = ((annual['private_investment_nonresidential_structures'].loc[tKW:] \
+        + annual['private_investment_equipment_software'].loc[tKW:] \
+        + annual['private_investment_residential_structures'].loc[tKW:] \
+        + annual['PCE_durables'].loc[tKW:]) / annual['GDP'].loc[tKW:]).mean()
 xm_y = annual['xm_y'].loc[tKW:].mean()
 xh_y = annual['xh_y'].loc[tKW:].mean()
+xms_y = (annual['private_investment_nonresidential_structures'].loc[tKW:] / annual['GDP'].loc[tKW:]).mean()
+xme_y = (annual['private_investment_equipment_software'].loc[tKW:] / annual['GDP'].loc[tKW:]).mean()
+xhh_y = (annual['private_investment_residential_structures'].loc[tKW:] / annual['GDP'].loc[tKW:]).mean()
+xhd_y = (annual['PCE_durables'].loc[tKW:] / annual['GDP'].loc[tKW:]).mean()
+
+k_y = ((annual['net_stock_private_nonresidential_structures'].loc[tKW:] \
+        + annual['net_stock_private_equipment_software'].loc[tKW:] \
+        + annual['net_stock_private_residential_structures'].loc[tKW:] \
+        + annual['net_stock_consumer_durables'].loc[tKW:]) / annual['GDP'].loc[tKW:]).mean() / 1000
+km_y = ((annual['net_stock_private_nonresidential_structures'].loc[tKW:] \
+         + annual['net_stock_private_equipment_software'].loc[tKW:]) / annual['GDP'].loc[tKW:]).mean() / 1000
+kh_y = ((annual['net_stock_private_residential_structures'].loc[tKW:] \
+         + annual['net_stock_consumer_durables'].loc[tKW:]) / annual['GDP'].loc[tKW:]).mean() / 1000
+kms_y = (annual['net_stock_private_nonresidential_structures'].loc[tKW:] / annual['GDP'].loc[tKW:]).mean() / 1000
+kme_y = (annual['net_stock_private_equipment_software'].loc[tKW:] / annual['GDP'].loc[tKW:]).mean() / 1000
+khh_y = (annual['net_stock_private_residential_structures'].loc[tKW:] / annual['GDP'].loc[tKW:]).mean() / 1000
+khd_y = (annual['net_stock_consumer_durables'].loc[tKW:] / annual['GDP'].loc[tKW:]).mean() / 1000
 
 quarter['deflator_consumption'] = 100 * \
     (quarter['PCE_nondurables'] + quarter['PCE_services']) / \
@@ -610,6 +531,14 @@ t2 = '1963-10-01'
 
 quarter['hours'] = quarter['hours_private_nonfarm']
 quarter.loc[t1:t2,'hours'] = z * quarter.loc[t1:t2,'hours_old_lhtpriva']
+
+### The FRED series PRSCQ ends 2022Q3. After careful consideration of the
+### series available from FRED, the series HOABS (Business sector: hours
+### worked for all workers) best lines up with our measurement of output (the
+### business sector).  HOABS has the added virtue that it starts in 1947, and
+### so there is no need to splice in old Citibase data.
+
+quarter['hours'] = quarter['hours-business']
 
 ### Nominal private inventories, from Haver.
 
@@ -759,6 +688,9 @@ def FIND_DELTA(delta_in):
     retval[-1] = delta[-1] - delta[-2]
     return retval
 
+qnew = pd.DataFrame()
+anew = pd.DataFrame()
+
 for s in ['e', 's', 'h', 'd']:
     my_delta = 'delta_' + s
     my_investment = 'real_x' + s
@@ -772,9 +704,20 @@ for s in ['e', 's', 'h', 'd']:
 
     ans = fsolve(FIND_DELTA, guess)
 
-    lastdate = quarter[my_investment].shift(1).last_valid_index().strftime('%Y-%m-%d')
-    quarter.loc['1947-01-01': lastdate, my_capital] = qcapital[:-1]
-    annual.loc['1947-01-01':, my_delta] = ans
+    ### Old code
+    ###lastdate = quarter[my_investment].shift(1).last_valid_index().strftime('%Y-%m-%d')
+    ###quarter.loc['1947-01-01': lastdate, my_capital] = qcapital#[:-1]
+    ###annual.loc['1947-01-01':, my_delta] = ans[:-1]
+    ### New code (replaces previous 3 lines). 2024-10-11
+    rng = pd.date_range('1947-01-01', periods = qcapital.size, freq = 'QS')
+    df = pd.DataFrame({my_capital: qcapital}, index = rng)
+    qnew = pd.concat([qnew, df], axis=1)
+    rng = pd.date_range('1947-01-01', periods = ans.size, freq = 'YS')
+    df = pd.DataFrame({my_delta: ans}, index = rng)
+    anew = pd.concat([anew, df], axis=1)
+
+quarter = pd.concat([quarter, qnew], axis=1)
+annual = pd.concat([annual, anew], axis=1)
 
 ################################################################################
 
@@ -851,14 +794,14 @@ quarter['tau_k_gr'] = (quarter['tau_h'] * (quarter['net_interest'] + \
 				 (quarter['housing_net_interest'] + \
 				  alpha_mean * quarter['housing_proprietors_income'] \
 				  + quarter['housing_rental_income'])) + \
-		 quarter['gov_taxes_corp_income'] + \
+		       quarter['gov_taxes_corp_income'] + \
 		       quarter['real_estate_taxes_business']) / \
-    (quarter['net_operating_surplus_private'] \
-      - quarter['housing_net_operating_surplus'] \
-      + quarter['private_capital_consumption']\
-      - quarter['private_capital_consumption_housing']\
-      - (1-alpha_mean) * (quarter['proprietors_income'] - \
-		        quarter['housing_proprietors_income']))  
+                       (quarter['net_operating_surplus_private'] \
+                        - quarter['housing_net_operating_surplus'] \
+                        + quarter['private_capital_consumption']\
+                        - quarter['private_capital_consumption_housing']\
+                        - (1-alpha_mean) * (quarter['proprietors_income'] - \
+		                            quarter['housing_proprietors_income']))  
 
 ### 2016-08-15: Added calculation for consumption tax rate
 
@@ -878,9 +821,6 @@ annual['tau_c'] = annual['consumption_taxes'] / \
    + annual['PCE_durables'] \
    + annual['gov_consumption_expenditures'] \
    - annual['consumption_taxes'])
-
-tau_k = quarter['tau_k'].mean()
-tau_n = quarter['tau_n'].mean()
 
 quarter = quarter.copy()
 
@@ -1081,6 +1021,26 @@ quarter['return_housing_capital_after_tax_constant_gain'] = \
   100*(((quarter['all_capital_income_after_tax'] - quarter['business_income_after_tax'])/4 / \
         (quarter['deflator_consumption']/100) / quarter['real_kh'].shift(1) + mean_capital_gain)**4 - 1) 
 
+for i in ['return_business_capital_pre_tax',
+          'return_business_capital_after_tax',
+          'return_business_capital_pre_tax_no_gain',
+          'return_business_capital_after_tax_no_gain',
+          'return_business_capital_pre_tax_constant_gain',
+          'return_business_capital_after_tax_constant_gain',
+          'return_all_capital_pre_tax',
+          'return_all_capital_after_tax',
+          'return_all_capital_pre_tax_no_gain',
+          'return_all_capital_after_tax_no_gain',
+          'return_all_capital_pre_tax_constant_gain',
+          'return_all_capital_after_tax_constant_gain',
+          'return_housing_capital_pre_tax',
+          'return_housing_capital_after_tax',
+          'return_housing_capital_pre_tax_no_gain',
+          'return_housing_capital_after_tax_no_gain',
+          'return_housing_capital_pre_tax_constant_gain',
+          'return_housing_capital_after_tax_constant_gain']:
+    globals()[i] = quarter[i].loc[tKW:].mean()
+
 ### The Solow residual (total factor productivity)
 
 quarter['solow_residual'] = (quarter['real_y'] / (quarter['real_ke'].shift(1) + quarter['real_ks'].shift(1))**alpha_mean)**(1/(1-alpha_mean)) / quarter['hours']
@@ -1100,6 +1060,39 @@ quarter = quarter.copy()
 ### Collection of data that is Hodrick-Prescott filtered
 
 print(" Preparing to HP filter ")
+
+#### Data for calibration paper
+#
+#hpname = ['real_pc_y', \
+#	 'real_pc_cm', \
+#	 'real_pc_xall',  \
+#	 'real_pc_xmarket', \
+#	 'real_pc_xhome',  \
+#	 'pc_hours', \
+#	 'productivity', \
+#	 'real_pc_kall', \
+#	 'real_pc_kmarket', \
+#	 'real_pc_khome', \
+#	 'solow_residual', \
+#	 'relative_price_investment']
+#
+#d = []
+#for s in hpname:
+#    d.append(quarter[s].last_valid_index().strftime('%Y-%m-%d'))
+#
+#dateend = min(d)
+#datestart = '1954-01-01'
+#
+#filtereddata = pd.DataFrame()
+#for s in hpname:
+#    hpcycle, hptrend = hpfilter(np.log(quarter.loc[datestart: dateend, s]), lamb=1600)
+#    filtereddata[s] = hpcycle
+#
+#filtereddata.to_csv('calibration-hpfiltered.csv')
+
+### Data including real returns
+
+###quarter = quarter.loc[quarter.index < '2020-01-01'] ## For calibration paper
 
 hpname = ['real_pc_y', \
 	 'real_pc_cm', \
@@ -1146,6 +1139,8 @@ for s in pctname:
     filtereddata[s] = (quarter.loc[datestart: dateend, s] - smean) / smean
 
 sname = hpname + pctname
+
+filtereddata.to_csv('hpfiltered.csv')
 
 T, N = filtereddata.shape
 
@@ -1320,7 +1315,7 @@ quarter.loc['1947-01-01':, ['relative_price_investment', 'solow_residual', 'tau_
 firstdate = '1954-01-01'
 lastdate = quarter['solow_residual'].last_valid_index().strftime('%Y-%m-%d')
 
-N = len(quarter.loc[firstdate:, 'solow_residual'].dropna())
+N = len(quarter.loc[firstdate:lastdate, 'solow_residual'].dropna())
 
 quarter.loc[firstdate:lastdate, 'trend'] = np.arange(1, N+1, 1)
 quarter['temp'] = np.log(quarter['solow_residual'])
@@ -1328,11 +1323,79 @@ quarter['log_solow_residual'] = quarter.loc[firstdate:, 'temp']
 quarter['temp'] = quarter['temp'].shift(1)
 quarter['lag_log_solow_residual'] = quarter.loc[firstdate:, 'temp']
 
+###lastdate = '2019-10-01'
+
 Solow_result = sm.ols(formula = "log_solow_residual ~ trend + lag_log_solow_residual",
-                      data = quarter).fit()
+                      data = quarter.loc[firstdate:lastdate]).fit()
 
 print(Solow_result.summary())
 print('SD of innovation:', Solow_result.scale**0.5)
+
+Solow_result.resid.to_csv('solow-residual.dat', header=None, sep='\t')
+
+#############################################################################
+tau_k = quarter['tau_k'].loc[tKW:].mean()
+tau_n = quarter['tau_n'].loc[tKW:].mean()
+tau_h = quarter['tau_h'].loc[tKW:].mean()
+tau_c = quarter['tau_c'].loc[tKW:].mean()
+
+data = [['Capital\'s share of income', alpha_mean],
+        ['Depreciation rate', delta_all_annual],
+        ['\\quad  Market', delta_market_annual],
+        ['\\qquad Structures', delta_market_structures_annual],
+        ['\\qquad Equipment \\& Software', delta_market_equipment_annual],
+        ['\\quad  Home', delta_home_annual],
+        ['\\qquad Housing', delta_home_structures_annual],
+        ['\\qquad Durables', delta_home_durables_annual],
+        ['Investment-output', x_y],
+        ['\\quad  Market', xm_y],
+        ['\\qquad Structures', xms_y],
+        ['\\qquad Equipment \\& Software', xme_y],
+        ['\\quad  Home', xh_y],
+        ['\\qquad Housing', xhh_y],
+        ['\\qquad Durables', xhd_y],
+        ['Capital-output', k_y],
+        ['\\quad  Market', km_y],
+        ['\\qquad Structures', kms_y],
+        ['\\qquad Equipment \\& Software', kme_y],
+        ['\\quad  Home', kh_y],
+        ['\\qquad Housing', khh_y],
+        ['\\qquad Durables', khd_y],
+        ['Return to capital', ''],
+        ['\\quad All capital', ''],
+        ['\\qquad Pre-tax', return_all_capital_pre_tax],
+        ['\\qquad After-tax', return_all_capital_after_tax],
+        ['\\qquad Pre-tax, constant gain', return_all_capital_pre_tax_constant_gain],
+        ['\\qquad After-tax, constant gain', return_all_capital_after_tax_constant_gain],
+        ['\\qquad Pre-tax, no gain', return_all_capital_pre_tax_no_gain],
+        ['\\qquad After-tax, no gain', return_all_capital_after_tax_no_gain],
+        ['\\quad Business capital', ''],
+        ['\\qquad Pre-tax', return_business_capital_pre_tax],
+        ['\\qquad After-tax', return_business_capital_after_tax],
+        ['\\qquad Pre-tax, constant gain', return_business_capital_pre_tax_constant_gain],
+        ['\\qquad After-tax, constant gain', return_business_capital_after_tax_constant_gain],
+        ['\\qquad Pre-tax, no gain', return_business_capital_pre_tax_no_gain],
+        ['\\qquad After-tax, no gain', return_business_capital_after_tax_no_gain],
+        ['\\quad Housing capital', ''],
+        ['\\qquad Pre-tax', return_housing_capital_pre_tax],
+        ['\\qquad After-tax', return_housing_capital_after_tax],
+        ['\\qquad Pre-tax, constant gain', return_housing_capital_pre_tax_constant_gain],
+        ['\\qquad After-tax, constant gain', return_housing_capital_after_tax_constant_gain],
+        ['\\qquad Pre-tax, no gain', return_housing_capital_pre_tax_no_gain],
+        ['\\qquad After-tax, no gain', return_housing_capital_after_tax_no_gain],
+        ['\\tau_h', tau_h],
+        ['\\tau_n', tau_n],
+        ['\\tau_k', tau_k],
+        ['\\tau_c', tau_c],
+        ['Technology shock',''],
+        ['\\quad Autoregressive parameter', Solow_result.params.iloc[2]],
+        ['\\quad Standard deviation of the residual', Solow_result.scale**0.5]]
+
+calibration = pd.DataFrame(data, columns=['Description', 'Value'])
+
+open('calibration.txt', 'w').write(tabulate(calibration, headers='keys', tablefmt='latex_raw', showindex=False))
+
+#############################################################################
 
 fig, ax = plt.subplots()
 ax.plot(1-annual['alpha'], clip_on = False)
@@ -1346,8 +1409,8 @@ plt.close()
 fig, ax = plt.subplots()
 ax.plot(100*(1-annual['alpha'])/(1-annual['alpha']['2012-01-01']), label='Gomme-Rupert', clip_on = False)
 ax.plot(100*annual['LABSHPUSA156NRUG']/annual['LABSHPUSA156NRUG']['2012-01-01'], label='Feenstra et al.', clip_on = False)
-ax.plot(quarter['PRS85006173'], label='Non-farm business sector', clip_on = False)
-ax.plot(quarter['PRS84006173'], label='Business sector', clip_on = False)
+ax.plot(quarter['labor share non-farm business'], label='Non-farm business sector', clip_on = False)
+ax.plot(quarter['labor share business'], label='Business sector', clip_on = False)
 ax.set_title('US Labor Share of Income, 2012=10')
 #plt.axhline(y = 0.0, color = 'grey', linestyle = '-')
 ax.legend(frameon=False)
@@ -1419,9 +1482,9 @@ plt.close()
 fig, ax = plt.subplots()
 ax.plot(quarter['return_business_capital_pre_tax_constant_gain'], label='Business', clip_on = False)
 ax.plot(quarter['return_all_capital_pre_tax_constant_gain'], label='All', clip_on = False)
-ax.plot(quarter['return_housing_capital_pre_tax_constant_gain'], label='Housng', clip_on = False)
+ax.plot(quarter['return_housing_capital_pre_tax_constant_gain'], label='Housing', clip_on = False)
 ax.legend(frameon=False)
-ax.set_title(my_title + 'Real Returns on Capital (percent)')
+ax.set_title(my_title + 'Pre-tax Real Returns on Capital (percent)')
 #plt.axhline(y = 0.0, color = 'grey', linestyle = '-')
 fig.savefig('pre_tax_return_to_capital.png')
 fig.savefig('pre_tax_return_to_capital.jpg')
@@ -1432,9 +1495,9 @@ plt.close()
 fig, ax = plt.subplots()
 ax.plot(quarter['return_business_capital_after_tax_constant_gain'], label='Business', clip_on = False)
 ax.plot(quarter['return_all_capital_after_tax_constant_gain'], label='All', clip_on = False)
-ax.plot(quarter['return_housing_capital_after_tax_constant_gain'], label='Housng', clip_on = False)
+ax.plot(quarter['return_housing_capital_after_tax_constant_gain'], label='Housing', clip_on = False)
 ax.legend(frameon=False)
-ax.set_title(my_title + 'Real Returns on Capital (percent)')
+ax.set_title(my_title + 'After-tax Real Returns on Capital (percent)')
 #plt.axhline(y = 0.0, color = 'grey', linestyle = '-')
 fig.savefig('after_tax_return_to_capital.png')
 fig.savefig('after_tax_return_to_capital.jpg')
