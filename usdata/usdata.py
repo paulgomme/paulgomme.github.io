@@ -99,6 +99,11 @@ import matplotlib as mpl
 from cycler import cycler
 ###import time
 
+### For the calibration paper, end the sample before the COVID-19 pandemic.
+### Otherwise, set to None.
+datestart = '1954-01-01'
+dateend   = '2019-10-01'
+
 ### 2021-04-02: Get longer time series for the capital income tax rate (and
 ### so for after-tax returns), by copying the last observation for certain
 ### housing income series. To get these longer series, set f_extend=True.
@@ -362,21 +367,18 @@ annual['delta_all'] = (annual['depreciation_private_equipment_software'] \
                           + annual['net_stock_consumer_durables'].shift(1) \
                           + annual['net_stock_private_residential_structures'].shift(1))
 
-### Index for Korean war
-tKW = '1954-01-01'
-
-#Average depreciation rates since Korean War
-delta_all_annual = annual['delta_all'].loc[tKW:].mean()
-delta_market_annual = annual['delta_market'].loc[tKW:].mean()
-delta_market_equipment_annual = annual['delta_ke'].loc[tKW:].mean()
-delta_market_structures_annual = annual['delta_ks'].loc[tKW:].mean()
-delta_home_annual = annual['delta_home'].loc[tKW:].mean()
-delta_home_structures_annual = annual['delta_kh'].loc[tKW:].mean()
-delta_home_durables_annual = annual['delta_kd'].loc[tKW:].mean()
+#Average depreciation rates over the sample
+delta_all_annual = annual['delta_all'].loc[datestart:dateend].mean()
+delta_market_annual = annual['delta_market'].loc[datestart:dateend].mean()
+delta_market_equipment_annual = annual['delta_ke'].loc[datestart:dateend].mean()
+delta_market_structures_annual = annual['delta_ks'].loc[datestart:dateend].mean()
+delta_home_annual = annual['delta_home'].loc[datestart:dateend].mean()
+delta_home_structures_annual = annual['delta_kh'].loc[datestart:dateend].mean()
+delta_home_durables_annual = annual['delta_kd'].loc[datestart:dateend].mean()
 #Average depreciation rates since Korean War (expressed quarterly)
-delta_all = 1 - (1 - annual['delta_all'].loc[tKW:].mean())**(.25)
-delta_market = 1 - (1 - annual['delta_market'].loc[tKW:].mean())**(.25)
-delta_home = 1 - (1 - annual['delta_home'].loc[tKW:].mean())**(.25)
+delta_all = 1 - (1 - annual['delta_all'].loc[datestart:dateend].mean())**(.25)
+delta_market = 1 - (1 - annual['delta_market'].loc[datestart:dateend].mean())**(.25)
+delta_home = 1 - (1 - annual['delta_home'].loc[datestart:dateend].mean())**(.25)
 
 ### Compute labor's share of income (alpha). Need to first compute factor
 ### incomes.
@@ -392,7 +394,7 @@ annual['income_capital'] = annual['rental_income'] + \
   (annual['net_national_product'] - annual['gov_net_national_product'] - \
    annual['net_housing_value_added']) 
 annual['alpha'] = annual['income_capital'] / (annual['income_capital'] + annual['income_labor']) 
-alpha_mean = annual['alpha'].loc[tKW:].mean()
+alpha_mean = annual['alpha'].loc[datestart:dateend].mean()
 
 ### `Usual' macroaggregates
 
@@ -413,29 +415,29 @@ annual['xm_y'] = (annual['private_investment_nonresidential_structures'] \
 annual['xh_y'] = (annual['private_investment_residential_structures'] \
 	          + annual['PCE_durables']) / annual['GDP']
 
-x_y = ((annual['private_investment_nonresidential_structures'].loc[tKW:] \
-        + annual['private_investment_equipment_software'].loc[tKW:] \
-        + annual['private_investment_residential_structures'].loc[tKW:] \
-        + annual['PCE_durables'].loc[tKW:]) / annual['GDP'].loc[tKW:]).mean()
-xm_y = annual['xm_y'].loc[tKW:].mean()
-xh_y = annual['xh_y'].loc[tKW:].mean()
-xms_y = (annual['private_investment_nonresidential_structures'].loc[tKW:] / annual['GDP'].loc[tKW:]).mean()
-xme_y = (annual['private_investment_equipment_software'].loc[tKW:] / annual['GDP'].loc[tKW:]).mean()
-xhh_y = (annual['private_investment_residential_structures'].loc[tKW:] / annual['GDP'].loc[tKW:]).mean()
-xhd_y = (annual['PCE_durables'].loc[tKW:] / annual['GDP'].loc[tKW:]).mean()
+x_y = ((annual['private_investment_nonresidential_structures'].loc[datestart:dateend] \
+        + annual['private_investment_equipment_software'].loc[datestart:dateend] \
+        + annual['private_investment_residential_structures'].loc[datestart:dateend] \
+        + annual['PCE_durables'].loc[datestart:dateend]) / annual['GDP'].loc[datestart:dateend]).mean()
+xm_y = annual['xm_y'].loc[datestart:dateend].mean()
+xh_y = annual['xh_y'].loc[datestart:dateend].mean()
+xms_y = (annual['private_investment_nonresidential_structures'].loc[datestart:dateend] / annual['GDP'].loc[datestart:dateend]).mean()
+xme_y = (annual['private_investment_equipment_software'].loc[datestart:dateend] / annual['GDP'].loc[datestart:dateend]).mean()
+xhh_y = (annual['private_investment_residential_structures'].loc[datestart:dateend] / annual['GDP'].loc[datestart:dateend]).mean()
+xhd_y = (annual['PCE_durables'].loc[datestart:dateend] / annual['GDP'].loc[datestart:dateend]).mean()
 
-k_y = ((annual['net_stock_private_nonresidential_structures'].loc[tKW:] \
-        + annual['net_stock_private_equipment_software'].loc[tKW:] \
-        + annual['net_stock_private_residential_structures'].loc[tKW:] \
-        + annual['net_stock_consumer_durables'].loc[tKW:]) / annual['GDP'].loc[tKW:]).mean() / 1000
-km_y = ((annual['net_stock_private_nonresidential_structures'].loc[tKW:] \
-         + annual['net_stock_private_equipment_software'].loc[tKW:]) / annual['GDP'].loc[tKW:]).mean() / 1000
-kh_y = ((annual['net_stock_private_residential_structures'].loc[tKW:] \
-         + annual['net_stock_consumer_durables'].loc[tKW:]) / annual['GDP'].loc[tKW:]).mean() / 1000
-kms_y = (annual['net_stock_private_nonresidential_structures'].loc[tKW:] / annual['GDP'].loc[tKW:]).mean() / 1000
-kme_y = (annual['net_stock_private_equipment_software'].loc[tKW:] / annual['GDP'].loc[tKW:]).mean() / 1000
-khh_y = (annual['net_stock_private_residential_structures'].loc[tKW:] / annual['GDP'].loc[tKW:]).mean() / 1000
-khd_y = (annual['net_stock_consumer_durables'].loc[tKW:] / annual['GDP'].loc[tKW:]).mean() / 1000
+k_y = ((annual['net_stock_private_nonresidential_structures'].loc[datestart:dateend] \
+        + annual['net_stock_private_equipment_software'].loc[datestart:dateend] \
+        + annual['net_stock_private_residential_structures'].loc[datestart:dateend] \
+        + annual['net_stock_consumer_durables'].loc[datestart:dateend]) / annual['GDP'].loc[datestart:dateend]).mean() / 1000
+km_y = ((annual['net_stock_private_nonresidential_structures'].loc[datestart:dateend] \
+         + annual['net_stock_private_equipment_software'].loc[datestart:dateend]) / annual['GDP'].loc[datestart:dateend]).mean() / 1000
+kh_y = ((annual['net_stock_private_residential_structures'].loc[datestart:dateend] \
+         + annual['net_stock_consumer_durables'].loc[datestart:dateend]) / annual['GDP'].loc[datestart:dateend]).mean() / 1000
+kms_y = (annual['net_stock_private_nonresidential_structures'].loc[datestart:dateend] / annual['GDP'].loc[datestart:dateend]).mean() / 1000
+kme_y = (annual['net_stock_private_equipment_software'].loc[datestart:dateend] / annual['GDP'].loc[datestart:dateend]).mean() / 1000
+khh_y = (annual['net_stock_private_residential_structures'].loc[datestart:dateend] / annual['GDP'].loc[datestart:dateend]).mean() / 1000
+khd_y = (annual['net_stock_consumer_durables'].loc[datestart:dateend] / annual['GDP'].loc[datestart:dateend]).mean() / 1000
 
 quarter['deflator_consumption'] = 100 * \
     (quarter['PCE_nondurables'] + quarter['PCE_services']) / \
@@ -1039,7 +1041,7 @@ for i in ['return_business_capital_pre_tax',
           'return_housing_capital_after_tax_no_gain',
           'return_housing_capital_pre_tax_constant_gain',
           'return_housing_capital_after_tax_constant_gain']:
-    globals()[i] = quarter[i].loc[tKW:].mean()
+    globals()[i] = quarter[i].loc[datestart:dateend].mean()
 
 ### The Solow residual (total factor productivity)
 
@@ -1062,37 +1064,35 @@ quarter = quarter.copy()
 print(" Preparing to HP filter ")
 
 #### Data for calibration paper
-#
-#hpname = ['real_pc_y', \
-#	 'real_pc_cm', \
-#	 'real_pc_xall',  \
-#	 'real_pc_xmarket', \
-#	 'real_pc_xhome',  \
-#	 'pc_hours', \
-#	 'productivity', \
-#	 'real_pc_kall', \
-#	 'real_pc_kmarket', \
-#	 'real_pc_khome', \
-#	 'solow_residual', \
-#	 'relative_price_investment']
-#
-#d = []
-#for s in hpname:
-#    d.append(quarter[s].last_valid_index().strftime('%Y-%m-%d'))
-#
-#dateend = min(d)
-#datestart = '1954-01-01'
-#
-#filtereddata = pd.DataFrame()
-#for s in hpname:
-#    hpcycle, hptrend = hpfilter(np.log(quarter.loc[datestart: dateend, s]), lamb=1600)
-#    filtereddata[s] = hpcycle
-#
-#filtereddata.to_csv('calibration-hpfiltered.csv')
+
+hpname = ['real_pc_y', \
+	 'real_pc_cm', \
+	 'real_pc_xmarket', \
+	 'pc_hours', \
+	 'productivity', \
+	 'real_pc_kmarket', \
+	 'solow_residual']
+
+d = []
+for s in hpname:
+    d.append(quarter[s].last_valid_index().strftime('%Y-%m-%d'))
+
+filtereddata = pd.DataFrame()
+for s in hpname:
+    hpcycle, hptrend = hpfilter(np.log(quarter.loc[datestart: dateend, s]), lamb=1600)
+    filtereddata[s] = hpcycle
+
+filtereddata.columns = ['Output',
+                        'Consumption',
+                        'Investment',
+                        'Hours',
+                        'Productivity',
+                        'Capital',
+                        'Shock']
+
+filtereddata.to_csv('us-historical.csv')
 
 ### Data including real returns
-
-###quarter = quarter.loc[quarter.index < '2020-01-01'] ## For calibration paper
 
 hpname = ['real_pc_y', \
 	 'real_pc_cm', \
@@ -1140,7 +1140,7 @@ for s in pctname:
 
 sname = hpname + pctname
 
-filtereddata.to_csv('hpfiltered.csv')
+filtereddata.to_csv('hpfiltered.csv', index_label='DATE')
 
 T, N = filtereddata.shape
 
@@ -1312,49 +1312,47 @@ annual['alpha'].dropna(inplace=False).to_csv('alpha.dat', sep='\t')
 quarter.loc['1947-01-01':, ['relative_price_investment', 'solow_residual', 'tau_n', 'tau_k']].to_csv('shocks.csv')
 
 ### Immediately after the Korean war
-firstdate = '1954-01-01'
+datestart = '1954-01-01'
 lastdate = quarter['solow_residual'].last_valid_index().strftime('%Y-%m-%d')
 
-N = len(quarter.loc[firstdate:lastdate, 'solow_residual'].dropna())
+N = len(quarter.loc[datestart:lastdate, 'solow_residual'].dropna())
 
-quarter.loc[firstdate:lastdate, 'trend'] = np.arange(1, N+1, 1)
+quarter.loc[datestart:lastdate, 'trend'] = np.arange(1, N+1, 1)
 quarter['temp'] = np.log(quarter['solow_residual'])
-quarter['log_solow_residual'] = quarter.loc[firstdate:, 'temp']
+quarter['log_solow_residual'] = quarter.loc[datestart:, 'temp']
 quarter['temp'] = quarter['temp'].shift(1)
-quarter['lag_log_solow_residual'] = quarter.loc[firstdate:, 'temp']
+quarter['lag_log_solow_residual'] = quarter.loc[datestart:, 'temp']
 
-###lastdate = '2019-10-01'
+print('***** 1954 to end of 2019 *****')
 
 Solow_result = sm.ols(formula = "log_solow_residual ~ trend + lag_log_solow_residual",
-                      data = quarter.loc[firstdate:lastdate]).fit()
+                      data = quarter.loc[datestart:'2019-10-01']).fit()
 
 print(Solow_result.summary())
 print('SD of innovation:', Solow_result.scale**0.5)
 
-Solow_result.resid.to_csv('solow-residual.dat', header=None, sep='\t')
-
 #############################################################################
-tau_k = quarter['tau_k'].loc[tKW:].mean()
-tau_n = quarter['tau_n'].loc[tKW:].mean()
-tau_h = quarter['tau_h'].loc[tKW:].mean()
-tau_c = quarter['tau_c'].loc[tKW:].mean()
+tau_k = quarter['tau_k'].loc[datestart:dateend].mean()
+tau_n = quarter['tau_n'].loc[datestart:dateend].mean()
+tau_h = quarter['tau_h'].loc[datestart:dateend].mean()
+tau_c = quarter['tau_c'].loc[datestart:dateend].mean()
 
 data = [['Capital\'s share of income', alpha_mean],
-        ['Depreciation rate', delta_all_annual],
+        ['Annual depreciation rate', delta_all_annual],
         ['\\quad  Market', delta_market_annual],
         ['\\qquad Structures', delta_market_structures_annual],
         ['\\qquad Equipment \\& Software', delta_market_equipment_annual],
         ['\\quad  Home', delta_home_annual],
         ['\\qquad Housing', delta_home_structures_annual],
         ['\\qquad Durables', delta_home_durables_annual],
-        ['Investment-output', x_y],
+        ['Annual investment-output', x_y],
         ['\\quad  Market', xm_y],
         ['\\qquad Structures', xms_y],
         ['\\qquad Equipment \\& Software', xme_y],
         ['\\quad  Home', xh_y],
         ['\\qquad Housing', xhh_y],
         ['\\qquad Durables', xhd_y],
-        ['Capital-output', k_y],
+        ['Annual capital-output', k_y],
         ['\\quad  Market', km_y],
         ['\\qquad Structures', kms_y],
         ['\\qquad Equipment \\& Software', kme_y],
@@ -1396,6 +1394,31 @@ calibration = pd.DataFrame(data, columns=['Description', 'Value'])
 open('calibration.txt', 'w').write(tabulate(calibration, headers='keys', tablefmt='latex_raw', showindex=False))
 
 #############################################################################
+print('***** 1954 to last available *****')
+
+Solow_result = sm.ols(formula = "log_solow_residual ~ trend + lag_log_solow_residual",
+                      data = quarter.loc[datestart:lastdate]).fit()
+
+print(Solow_result.summary())
+print('SD of innovation:', Solow_result.scale**0.5)
+
+Solow_result.resid.to_csv('solow-residual.dat', header=None, sep='\t')
+
+#############################################################################
+
+fig, ax = plt.subplots()
+quarter['solow_residual'].dropna().plot(ax=ax, label='Solow Residual', clip_on = False, logy=True)
+#ax.legend(frameon=False)
+ax.set_title('US Solow Residual')
+#plt.axhline(y = 0.0, color = 'grey', linestyle = '-')
+fig.savefig('solow_residual.png')
+fig.savefig('solow_residual.jpg')
+fig.savefig('solow_residual.pdf')
+plt.close()
+
+
+
+
 
 fig, ax = plt.subplots()
 ax.plot(1-annual['alpha'], clip_on = False)
